@@ -7,12 +7,14 @@
 <body class="min-h-screen bg-background-1 text-foreground antialiased">
   <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[100] focus:rounded-lg focus:bg-layer focus:px-3 focus:py-2 focus:text-sm focus:shadow">Lewati ke isi</a>
   <div id="admin-nav"></div>
-  <main id="main" class="mx-auto max-w-6xl px-4 pb-16 pt-6">
-    <p><a href="/admin/users/" class="text-sm font-medium text-primary-700 hover:underline dark:text-primary-300">&larr; Semua pengguna</a></p>
-    <h1 class="mt-2 text-2xl font-bold">Detail pengguna</h1>
+  <div class="lg:ps-64">
+  <main id="main" class="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6">
+    <p><a href="/admin/users/" class="link inline-flex items-center gap-1.5 text-sm"><!--@icon chevron-left | size-4-->Semua pengguna</a></p>
+    <h1 class="mt-3 font-display text-4xl font-medium tracking-tight">Detail pengguna</h1>
     <div id="state" aria-live="polite"></div>
     <div id="content" class="mt-6 space-y-8"></div>
   </main>
+  </div>
   <script type="module" src="/assets/js/pages/admin-user-detail.js"></script>
 </body>
 </html>

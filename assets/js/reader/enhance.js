@@ -1,7 +1,7 @@
 // Peningkatan isi materi yang sudah dirender server (HTML dari backend; sudah dilint tanpa
 // <script>, handler inline, atau atribut style). Semua perubahan lewat DOM; tidak ada innerHTML baru.
 import { withBase } from "../api.js";
-import { copyText, h, icon, toast } from "../ui.js";
+import { copyText, h, icon, scrollRegion, toast } from "../ui.js";
 
 // Penanda isian yang disorot di dalam pagar kode (tanpa mengubah teks, jadi salinan tetap utuh).
 // Huruf kecil seperti [judul kerja] dan penanda bukan-isian seperti [S1] atau [K001] tidak disorot.
@@ -10,8 +10,7 @@ const MARKER = new RegExp(
   "g",
 );
 
-const PRE_CLASS = "m-0 overflow-x-auto whitespace-pre-wrap break-words bg-muted p-4 font-mono text-sm leading-relaxed text-foreground";
-const COPY_BTN = "inline-flex items-center gap-1.5 rounded-md border border-line-3 bg-layer px-2.5 py-1 text-xs font-medium text-layer-foreground hover:bg-layer-hover focus:outline-none focus:ring-2 focus:ring-primary-focus";
+const COPY_BTN = "btn btn-primary btn-sm";
 
 export function enhanceContent(root, { salinTeks = "", download } = {}) {
   wrapTables(root);
@@ -28,10 +27,10 @@ export function enhanceContent(root, { salinTeks = "", download } = {}) {
 function wrapTables(root) {
   root.querySelectorAll("table").forEach((t) => {
     if (t.parentElement.dataset.tableWrap) return;
-    const wrap = h("div", { class: "my-4 overflow-x-auto", data: { tableWrap: "1" }, role: "region", tabindex: "0", "aria-label": "Tabel (dapat digulir)" });
+    const wrap = h("div", { class: "my-6 overflow-x-auto rounded-xl border border-line-2", data: { tableWrap: "1" } });
     t.replaceWith(wrap);
     wrap.append(t);
-    t.classList.add("text-sm");
+    scrollRegion(wrap, "Tabel (dapat digulir)");
   });
 }
 
@@ -49,7 +48,7 @@ function highlightMarkers(root) {
       let last = 0;
       for (const m of text.matchAll(MARKER)) {
         if (m.index > last) frag.append(text.slice(last, m.index));
-        frag.append(h("mark", { class: "rounded bg-amber-200 px-0.5 text-amber-950 dark:bg-amber-300 dark:text-amber-950", text: m[0] }));
+        frag.append(h("mark", { text: m[0] })); // gaya stabilo dari aturan mark di input.css
         last = m.index + m[0].length;
       }
       if (last < text.length) frag.append(text.slice(last));
@@ -58,8 +57,8 @@ function highlightMarkers(root) {
   });
 }
 
-function copyButton(getText, label = "Salin") {
-  const btn = h("button", { type: "button", class: COPY_BTN }, icon("copy", "size-3.5"), h("span", { text: label }));
+function copyButton(getText, label = "Salin", accessibleName = "") {
+  const btn = h("button", { type: "button", class: COPY_BTN, "aria-label": accessibleName || null }, icon("copy", "size-3.5"), h("span", { text: label }));
   btn.addEventListener("click", async () => {
     const ok = await copyText(getText());
     toast(ok ? "Tersalin ke papan klip." : "Gagal menyalin; pilih teksnya lalu salin manual.", ok ? "success" : "error");
@@ -91,17 +90,17 @@ function cardify(root) {
 function wrapPre(pre, isCard, title) {
   if (pre.parentElement.dataset.preWrap) return;
   const text = () => pre.textContent.replace(/\n$/, "");
-  pre.className = PRE_CLASS;
-  const wrap = h("div", { class: "not-prose my-4 overflow-hidden rounded-lg border border-line-2", data: { preWrap: "1" } });
+  const wrap = h("div", { class: isCard ? "code-card" : "code-block", data: { preWrap: "1" } });
   if (isCard) {
-    wrap.append(h("div", { class: "flex items-center justify-between gap-2 border-b border-line-2 bg-layer px-3 py-2" },
-      h("span", { class: "truncate text-xs font-medium text-muted-foreground-1", text: "Prompt untuk disalin" }),
-      copyButton(text, "Salin kartu")));
+    wrap.append(h("div", { class: "code-card-head" },
+      h("span", { class: "flex min-w-0 items-center gap-2 text-sm font-semibold text-primary-900 dark:text-primary-100" },
+        icon("sparkles", "size-4 text-primary-700 dark:text-primary-300"), h("span", { class: "truncate", text: "Prompt untuk disalin" }),
+        h("span", { class: "hidden text-xs font-normal text-muted-foreground-1 sm:inline", text: "Isi bagian yang disorot" })),
+      copyButton(text, "Salin kartu", `Salin kartu ${title.replace(/^Kartu\s+/, "")}`)));
     wrap.dataset.card = title;
   } else {
-    wrap.classList.add("relative");
     const btn = copyButton(text, "Salin");
-    btn.classList.add("absolute", "right-2", "top-2");
+    btn.classList.add("absolute", "right-3", "top-3");
     wrap.append(btn);
   }
   pre.replaceWith(wrap);
@@ -116,7 +115,7 @@ function copyOtherPre(root) {
 function addInstructionCopy(root, salinTeks) {
   const hr = root.querySelector("hr");
   if (!hr) return;
-  hr.after(h("div", { class: "not-prose my-4 flex items-center justify-between gap-3 rounded-lg border border-line-2 bg-layer px-3 py-2" },
+  hr.after(h("div", { class: "alert alert-info my-6 flex flex-wrap items-center justify-between gap-3" },
     h("span", { class: "text-sm", text: "Teks di bawah garis ini yang ditempel sebagai instruksi tetap." }),
     copyButton(() => salinTeks, "Salin instruksi")));
 }

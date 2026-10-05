@@ -1,7 +1,7 @@
 import "../common.js";
 import * as api from "../api.js";
-import { badge, enrollmentBadge, formatDate, h, mount } from "../ui.js";
-import { INPUT, debounce, emptyState, errorState, field, link, loadingState, orDash, readQuery, select, startAdmin, table, writeQuery } from "../admin/kit.js";
+import { badge, enrollmentBadge, formatDateShort, h, mount } from "../ui.js";
+import { INPUT, avatar, debounce, emptyState, errorState, field, link, loadingState, orDash, readQuery, select, startAdmin, table, writeQuery } from "../admin/kit.js";
 import { renderPager } from "../admin/pager.js";
 
 // Semua const yang dipakai fungsi di bawah harus dideklarasikan SEBELUM `await` tingkat modul
@@ -59,16 +59,16 @@ function render(res) {
   }
   mount(list, table("Daftar pengguna", ["Nama", "Afiliasi", "Peran", "Akun", "Pendaftaran", "Terdaftar"],
     res.users.map((u) => [
-      h("div", {}, link(`/admin/users-detail/?id=${encodeURIComponent(u.id)}`, u.name), h("div", { class: "text-xs text-muted-foreground-1", text: u.email })),
+      h("div", { class: "flex items-center gap-3" }, avatar(u.name), h("div", { class: "min-w-0" }, link(`/admin/users-detail/?id=${encodeURIComponent(u.id)}`, u.name), h("div", { class: "text-xs text-muted-foreground-1", text: u.email }))),
       orDash(u.affiliation),
-      u.role === "admin" ? badge("Admin", "teal") : badge("Peserta"),
+      u.role === "admin" ? badge("Admin", "ok") : badge("Peserta"),
       h("div", { class: "space-y-1" },
-        u.is_active ? badge("Aktif", "teal") : badge("Nonaktif", "red"),
+        u.is_active ? badge("Aktif", "ok") : badge("Nonaktif", "danger"),
         h("div", { class: "text-xs text-muted-foreground-1", text: (u.auth_methods || []).map((m) => METODE[m] || m).join(", ") })),
       u.enrollments.length
         ? h("div", { class: "space-y-1" }, u.enrollments.map((e) => h("div", { class: "flex flex-wrap items-center gap-1.5" }, h("span", { text: e.skema_judul }), enrollmentBadge(e))))
         : "—",
-      formatDate(u.created_at),
+      h("span", { class: "whitespace-nowrap", text: formatDateShort(u.created_at) }),
     ])));
   renderPager(pager, res.meta, (page) => { query.page = String(page); load(); });
 }

@@ -15,12 +15,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Tanpa API_BASE_URL (fungsi GCF belum ada) deploy dilewati, bukan gagal merah.
+  # Tanpa variabel repo API_BASE_URL deploy dilewati (bukan gagal merah).
   menunggu-api:
     if: ${{ vars.API_BASE_URL == '' }}
     runs-on: ubuntu-latest
     steps:
-      - run: echo "::notice::Deploy dilewati, variabel repo API_BASE_URL (alamat fungsi GCF) belum diisi."
+      - run: echo "::notice::Deploy dilewati: isi variabel repo API_BASE_URL (alamat API backend)."
 
   deploy:
     if: ${{ vars.API_BASE_URL != '' }}

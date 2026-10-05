@@ -9,25 +9,13 @@ if (auth.requireLogin()) {
   const errBox = document.getElementById("form-error");
   const btn = document.getElementById("submit");
   let getSkema = () => "";
-  try {
-    const [sk, enr] = await Promise.all([api.get("/api/skema"), api.get("/api/enrollments")]);
-    const have = enr.enrollments.map((e) => e.skema);
-    if (have.length >= sk.skema.length) {
-      form.classList.add("hidden");
-      document.getElementById("intro").textContent = "Anda sudah mengikuti semua skema yang tersedia.";
-    } else {
-      getSkema = renderSkemaPicker(document.getElementById("skema-list"), sk.skema, {
-        excluded: have,
-        preselect: new URLSearchParams(location.search).get("skema") || "",
-      });
-    }
-  } catch (err) {
-    showFormError(errBox, err.message);
-  }
+  let skemaSiap = false;
 
+  // Listener dipasang sebelum await apa pun (lihat catatan di login.js).
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     showFormError(errBox, "");
+    if (!skemaSiap) return showFormError(errBox, "Daftar skema masih dimuat. Coba lagi sebentar.");
     const skema = getSkema();
     if (!skema) return showFormError(errBox, "Pilih skema.");
     setBusy(btn, true, "Memproses...");
@@ -39,4 +27,21 @@ if (auth.requireLogin()) {
       setBusy(btn, false);
     }
   });
+
+  try {
+    const [sk, enr] = await Promise.all([api.get("/api/skema"), api.get("/api/enrollments")]);
+    const have = enr.enrollments.map((e) => e.skema);
+    if (have.length >= sk.skema.length) {
+      form.classList.add("hidden");
+      document.getElementById("intro").textContent = "Anda sudah mengikuti semua skema yang tersedia.";
+    } else {
+      getSkema = renderSkemaPicker(document.getElementById("skema-list"), sk.skema, {
+        excluded: have,
+        preselect: new URLSearchParams(location.search).get("skema") || "",
+      });
+      skemaSiap = true;
+    }
+  } catch (err) {
+    showFormError(errBox, err.message);
+  }
 }

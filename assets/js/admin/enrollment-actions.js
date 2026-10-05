@@ -51,7 +51,8 @@ export function setTrial(e, nama) {
 // Tombol aksi sesuai status. onChange dipanggil setelah data berubah.
 export function actionsFor(e, nama, onChange) {
   const run = (fn) => async () => { if (await fn(e, nama)) onChange(); };
-  const btn = (cls, text, fn) => h("button", { type: "button", class: cls, on: { click: run(fn) }, text });
+  // Nama aksesibel menyebut pesertanya: tanpa itu, tiap baris berisi tombol "Setujui" yang identik.
+  const btn = (cls, text, fn) => h("button", { type: "button", class: cls, "aria-label": `${text} ${nama}`, on: { click: run(fn) }, text });
   const out = [];
   if (e.status !== "approved") out.push(btn(BTN, "Setujui", approve));
   if (e.status === "pending") out.push(btn(BTN, "Beri trial", setTrial));

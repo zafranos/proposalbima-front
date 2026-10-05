@@ -4,11 +4,15 @@
 <!--@head-->
 <title>Halaman tidak ditemukan | Proposal DIKTI</title>
 </head>
-<body class="flex min-h-screen items-center justify-center bg-background-1 px-4 text-foreground antialiased">
-  <main class="text-center">
-    <p class="text-6xl font-bold text-muted-foreground-1">404</p>
-    <h1 class="mt-2 text-2xl font-semibold">Halaman tidak ditemukan</h1>
-    <a href="/" class="mt-6 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-focus focus:ring-offset-2">Ke beranda</a>
+<body class="flex min-h-screen flex-col bg-background text-foreground antialiased">
+  <header class="container-page flex h-16 items-center justify-between"><!--@include logo--><!--@include theme-toggle--></header>
+  <main id="main" class="flex flex-1 items-center justify-center px-4 pb-20 text-center">
+    <div class="animate-rise">
+      <p class="font-display text-8xl font-medium text-primary-200 dark:text-primary-800" aria-hidden="true">404</p>
+      <h1 class="mt-2 font-display text-4xl font-medium tracking-tight">Halaman tidak ditemukan</h1>
+      <p class="mx-auto mt-3 max-w-sm text-[15px] text-muted-foreground-1">Tautan yang Anda buka tidak ada atau sudah dipindahkan.</p>
+      <a href="/" class="btn btn-primary btn-lg mt-8">Ke beranda</a>
+    </div>
   </main>
   <script type="module" src="/assets/js/common.js"></script>
 </body>

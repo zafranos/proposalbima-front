@@ -1,8 +1,8 @@
-// Klien API (fetch + JSON, tanpa pustaka). Perbedaan dari rujukan SLR:
-//  - setelah mengalihkan halaman (401 atau `redirect`), mengembalikan promise yang tak pernah
-//    selesai, bukan undefined, sehingga pemanggil tidak galat saat halaman berpindah
+// Klien API (fetch + JSON, tanpa pustaka). Perilaku yang perlu diketahui:
+//  - setelah mengalihkan halaman (401 atau `redirect`), mengembalikan promise yang tak pernah selesai,
+//    bukan undefined, sehingga pemanggil tidak galat saat halaman berpindah
 //  - 401 dari /login, /register, dan /auth/* TIDAK mengalihkan (itu galat biasa, mis. token Google ditolak)
-//  - `redirect` dari backend hanya diikuti bila lolos safePath (regex SLR meloloskan "/\host")
+//  - `redirect` dari backend hanya diikuti bila lolos safePath ("/\host" dibaca peramban sebagai "//host")
 import { config } from "./config.js";
 import * as session from "./session.js";
 

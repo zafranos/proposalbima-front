@@ -11,11 +11,12 @@ export function modal({ title, description, content, confirmLabel = "Simpan", da
   return new Promise((resolve) => {
     const id = "dlg-" + ++seq;
     let done = false;
-    const err = h("div", { role: "alert", class: "hidden rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-700 dark:bg-red-950 dark:text-red-100" });
+    let busy = false;
+    const err = h("div", { role: "alert", class: "alert alert-error hidden" });
     const cancel = h("button", { type: "button", class: BTN, text: "Batal" });
     const submit = h("button", { type: "submit", class: danger ? BTN_DANGER_SOLID : BTN_PRIMARY, text: confirmLabel });
     const form = h("form", { class: "space-y-4 p-6", novalidate: true },
-      h("h2", { id: id + "-title", class: "text-lg font-semibold", text: title }),
+      h("h2", { id: id + "-title", class: "font-display text-2xl font-medium tracking-tight", text: title }),
       description ? h("p", { id: id + "-desc", class: "text-sm text-muted-foreground-1", text: description }) : null,
       content,
       err,
@@ -23,19 +24,25 @@ export function modal({ title, description, content, confirmLabel = "Simpan", da
     const dlg = h("dialog", {
       "aria-labelledby": id + "-title",
       "aria-describedby": description ? id + "-desc" : null,
-      class: "m-auto w-[calc(100%-2rem)] max-w-md rounded-xl border border-layer-line bg-layer p-0 text-layer-foreground shadow-xl backdrop:bg-black/50",
+      class: "modal",
     }, form);
 
-    cancel.addEventListener("click", () => dlg.close());
+    // Esc atau Batal saat permintaan berjalan akan menutup dialog sementara datanya sudah berubah di server dan
+    // daftar tidak dimuat ulang; jadi selama sibuk, penutupan ditunda sampai permintaan selesai.
+    dlg.addEventListener("cancel", (e) => { if (busy) e.preventDefault(); });
+    cancel.addEventListener("click", () => { if (!busy) dlg.close(); });
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       showFormError(err, "");
       setBusy(submit, true, "Memproses...");
+      busy = true;
       try {
         if (onSubmit) await onSubmit(form);
         done = true;
+        busy = false;
         dlg.close();
       } catch (ex) {
+        busy = false;
         showFormError(err, ex.message || "Terjadi kesalahan.");
         setBusy(submit, false);
       }

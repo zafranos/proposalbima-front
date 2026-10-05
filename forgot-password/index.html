@@ -4,30 +4,32 @@
 <!--@head-->
 <title>Lupa kata sandi | Proposal DIKTI</title>
 </head>
-<body class="min-h-screen bg-background-1 text-foreground antialiased">
-  <header class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-    <a href="/" class="text-lg font-semibold">Proposal DIKTI</a>
-    <div class="flex items-center gap-2">
-      
-      <button type="button" data-theme-toggle class="inline-flex size-9 items-center justify-center rounded-lg border border-line-2 hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus"></button>
-    </div>
-  </header>
-  <main class="mx-auto max-w-md px-4 pb-16 pt-6">
-    <div class="rounded-xl border border-layer-line bg-layer p-6 shadow-sm sm:p-8">
-      <h1 class="text-2xl font-bold">Lupa kata sandi</h1>
-      <p class="mt-1 text-sm text-muted-foreground-1">Masukkan email akun Anda. Bila terdaftar, kami kirim tautan untuk membuat kata sandi baru.</p>
-      <div id="result" role="status" class="hidden rounded-lg border border-teal-300 bg-teal-50 px-3 py-2 text-sm text-teal-900 dark:border-teal-700 dark:bg-teal-950 dark:text-teal-100 mt-4"></div>
-      <form id="form" class="mt-6 space-y-4" novalidate>
-        <div id="form-error" role="alert" class="hidden rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-700 dark:bg-red-950 dark:text-red-100"></div>
-        <div>
-          <label for="email" class="mb-1.5 block text-sm font-medium">Email</label>
-          <input id="email" name="email" type="email" autocomplete="email" required class="block w-full rounded-lg border border-line-3 bg-layer px-3.5 py-2.5 text-sm text-layer-foreground placeholder:text-muted-foreground-1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50">
+<body class="bg-background text-foreground antialiased">
+  <div class="grid min-h-screen lg:grid-cols-[5fr_6fr]">
+    <!--@include auth-aside-->
+    <div class="flex min-h-screen flex-col">
+      <header class="flex items-center justify-between px-4 py-4 sm:px-8">
+        <span class="lg:hidden"><!--@include logo--></span><span class="hidden lg:block"></span>
+        <!--@include theme-toggle-->
+      </header>
+      <main id="main" class="flex flex-1 items-center justify-center px-4 pb-14 pt-4 sm:px-8">
+        <div class="w-full max-w-md animate-rise">
+          <h1 class="font-display text-4xl font-medium tracking-tight">Lupa kata sandi</h1>
+          <p class="mt-2 text-[15px] text-muted-foreground-1">Masukkan email akun Anda. Bila terdaftar, kami kirim tautan untuk membuat kata sandi baru.</p>
+          <div id="result" role="status" class="alert alert-success mt-6 hidden"></div>
+          <form id="form" method="post" class="mt-8 space-y-5" novalidate>
+            <div id="form-error" role="alert" class="alert alert-error hidden"></div>
+            <div>
+              <label for="email" class="label">Email</label>
+              <input id="email" name="email" type="email" autocomplete="email" required class="input">
+            </div>
+            <button id="submit" type="submit" class="btn btn-primary btn-lg w-full">Kirim tautan</button>
+          </form>
+          <p class="mt-8 border-t border-line-2 pt-6 text-sm"><a href="/login/" class="link">Kembali ke halaman masuk</a></p>
         </div>
-        <button id="submit" type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-focus focus:ring-offset-2 disabled:opacity-50">Kirim tautan</button>
-      </form>
+      </main>
     </div>
-    <p class="mt-6 text-center text-sm"><a href="/login/" class="font-medium text-primary-700 hover:underline dark:text-primary-300">Kembali ke halaman masuk</a></p>
-  </main>
+  </div>
   <script type="module" src="/assets/js/pages/forgot-password.js"></script>
 </body>
 </html>

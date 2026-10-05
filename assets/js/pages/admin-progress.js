@@ -1,13 +1,13 @@
 import "../common.js";
 import * as api from "../api.js";
 import { badge, formatDateTime, h, mount } from "../ui.js";
-import { COLORS, disposeChart, makeChart } from "../admin/charts.js";
-import { CARD, INPUT, debounce, emptyState, errorState, field, link, loadSkema, loadingState, orDash, readQuery, select, startAdmin, table, writeQuery } from "../admin/kit.js";
+import { disposeChart, makeChart } from "../admin/charts.js";
+import { CARD, INPUT, avatar, debounce, emptyState, errorState, field, link, loadSkema, loadingState, orDash, readQuery, select, startAdmin, table, writeQuery } from "../admin/kit.js";
 import { renderPager } from "../admin/pager.js";
 
 // Semua const yang dipakai fungsi di bawah dideklarasikan SEBELUM `await` tingkat modul.
 const DEFAULTS = { skema: "", q: "", page: "1" };
-const STATUS = { pending: ["Menunggu", "amber"], trial: ["Trial", "sky"], approved: ["Disetujui", "teal"] };
+const STATUS = { pending: ["Menunggu", "pending"], trial: ["Trial", "trial"], approved: ["Disetujui", "ok"] };
 const trunc = (s, n = 34) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 const query = readQuery(DEFAULTS);
 const state = document.getElementById("state");
@@ -67,11 +67,11 @@ function render(res) {
     mount(funnelBox,
       h("div", { class: `${CARD} p-4` }, h("div", { class: f.length > 12 ? "h-[36rem]" : "h-80" }, canvas)),
       table("Corong modul alur", ["Modul", "Dikunjungi", "Selesai"], f.map((m) => [m.judul, String(m.dikunjungi), String(m.selesai)])));
-    funnelChart = makeChart(canvas, () => ({
+    funnelChart = makeChart(canvas, (t) => ({
       type: "bar",
       data: { labels: f.map((m) => trunc(m.judul)), datasets: [
-        { label: "Dikunjungi", data: f.map((m) => m.dikunjungi), backgroundColor: COLORS.sky },
-        { label: "Selesai", data: f.map((m) => m.selesai), backgroundColor: COLORS.teal },
+        { label: "Dikunjungi", data: f.map((m) => m.dikunjungi), backgroundColor: t.c.trial, borderRadius: 4 },
+        { label: "Selesai", data: f.map((m) => m.selesai), backgroundColor: t.c.approved, borderRadius: 4 },
       ] },
       options: { indexAxis: "y", scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } },
     }));
@@ -84,13 +84,13 @@ function render(res) {
   }
   mount(list, table("Progres peserta", ["Peserta", "Status", "Progres alur", "Terakhir aktif"],
     res.peserta.map((x) => {
-      const [label, tone] = STATUS[x.status] || [x.status, "gray"];
+      const [label, tone] = STATUS[x.status] || [x.status, "neutral"];
       return [
-        h("div", {}, link(`/admin/users-detail/?id=${encodeURIComponent(x.user_id)}`, x.name), h("div", { class: "text-xs text-muted-foreground-1", text: x.email })),
+        h("div", { class: "flex items-center gap-3" }, avatar(x.name), h("div", { class: "min-w-0" }, link(`/admin/users-detail/?id=${encodeURIComponent(x.user_id)}`, x.name), h("div", { class: "text-xs text-muted-foreground-1", text: x.email }))),
         badge(label, tone),
         res.total_alur > 0
           ? h("div", { class: "flex items-center gap-2" },
-            h("progress", { class: "h-2 w-28 overflow-hidden rounded-full accent-teal-700", value: String(x.selesai), max: String(res.total_alur), "aria-label": `Progres ${x.name}: ${x.selesai} dari ${res.total_alur} modul` }),
+            h("progress", { class: "meter w-28", value: String(x.selesai), max: String(res.total_alur), "aria-label": `Progres ${x.name}: ${x.selesai} dari ${res.total_alur} modul` }),
             h("span", { class: "text-xs text-muted-foreground-1", text: `${x.selesai} / ${res.total_alur}` }))
           : "—",
         orDash(formatDateTime(x.terakhir)),

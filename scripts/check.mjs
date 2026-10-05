@@ -3,6 +3,8 @@
 //    (CSP script-src 'self' / style-src 'self' memblokirnya)
 //  - tanpa rujukan CDN atau font pihak ketiga
 //  - setiap halaman punya meta CSP tanpa 'unsafe-inline' dan tanpa 'unsafe-eval'
+//  - semua penanda build (@head, @include, @icon, __API_ORIGIN__) sudah terganti
+//  - bila PDK_BASE_PATH diisi, setiap href/src berawalan "/" memuat awalan situs itu
 // Keluar 1 bila ada pelanggaran.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -30,19 +32,25 @@ for (const f of htmlFiles) {
   if (/\sstyle\s*=/i.test(html)) problems.push(`${f}: atribut style=""`);
   if (/<style\b/i.test(html)) problems.push(`${f}: <style> inline`);
   if (/googleapis|gstatic|cdn\.|cdnjs|unpkg|jsdelivr/i.test(html)) problems.push(`${f}: rujukan CDN/pihak ketiga`);
+
   const csp = html.match(/<meta[^>]+http-equiv="Content-Security-Policy"[^>]*content="([^"]*)"/i);
-  if (!csp) problems.push(`${f}: tanpa meta CSP`);
-  else {
+  if (!csp) {
+    problems.push(`${f}: tanpa meta CSP`);
+  } else {
     if (/unsafe-inline|unsafe-eval/.test(csp[1])) problems.push(`${f}: CSP memuat unsafe-*`);
     if (!/script-src 'self'/.test(csp[1])) problems.push(`${f}: CSP tanpa script-src 'self'`);
-    if (BASE) {
+  }
+
+  if (BASE) {
     for (const m of html.matchAll(/\s(?:href|src)="(\/(?!\/)[^"]*)"/g)) {
-      if (!(m[1] === BASE || m[1].startsWith(BASE + "/") || m[1].startsWith(BASE + "?") || m[1].startsWith(BASE + "#"))) problems.push(`${f}: tautan tanpa awalan situs ${BASE}: ${m[1]}`);
+      const ok = m[1] === BASE || m[1].startsWith(BASE + "/") || m[1].startsWith(BASE + "?") || m[1].startsWith(BASE + "#");
+      if (!ok) problems.push(`${f}: tautan tanpa awalan situs ${BASE}: ${m[1]}`);
     }
   }
+
   if (html.includes("<!--@head-->")) problems.push(`${f}: penanda <!--@head--> belum diganti`);
+  if (/<!--@(include|icon) /.test(html)) problems.push(`${f}: penanda <!--@include/@icon ...--> belum diganti`);
   if (/__API_ORIGIN__/.test(html)) problems.push(`${f}: penanda __API_ORIGIN__ belum diganti`);
-  }
 }
 if (problems.length) {
   console.error(`GAGAL (${problems.length}):\n  - ` + problems.join("\n  - "));

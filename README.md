@@ -8,7 +8,7 @@ berasal dari API backend yang berada di repo terpisah.
 
 ```bash
 npm install
-npm run build        # dist/: HTML, CSS Tailwind, vendor Preline dan font
+npm run build        # dist/: HTML, CSS Tailwind, Chart.js dan font
 npm run check        # aturan CSP dan tanpa CDN pada dist/
 npm run dev          # build lalu sajikan dist/ di http://localhost:5173
 npm run test:e2e     # uji peramban (Chrome terpasang + playwright-core)
@@ -35,8 +35,9 @@ E2E_BASE_PATH=/nama-repo npm run test:e2e    # situs disajikan sebagai situs pro
 ## Struktur
 
 ```
-partials/head.html    <head> bersama (CSP, tema, CSS)
-assets/js/            modul bersama (session, api, auth, ui, common)
+partials/             potongan HTML bersama (head dengan CSP, logo, bilah aplikasi), disisipkan saat build
+assets/css/           input.css (komponen) dan themes/tinta.css (token warna tema Preline)
+assets/js/            modul bersama (session, api, auth, ui, icons, drawer, common)
 assets/js/pages/      satu modul per halaman
 assets/js/reader/     pembaca materi
 assets/js/admin/      komponen panel admin (navigasi, dialog, paginasi, grafik, aksi pendaftaran)
@@ -46,6 +47,8 @@ admin/<halaman>/      panel admin: dashboard, users, users-detail, enrollments, 
 
 ## Konvensi
 
+- Komponen dipakai lewat kelas semantik (`.btn`, `.card`, `.chip`, `.input`, ...) yang didefinisikan di `assets/css/input.css`, bukan menyalin utilitas panjang.
+- Ikon berasal dari `assets/js/icons.js`: `icon()` di JS dan `<!--@icon nama | kelas-->` di HTML statis.
 - CSP lewat tag meta, `script-src 'self'` dan `style-src 'self'`: tanpa skrip inline dan tanpa atribut `style`.
 - DOM dibangun dengan `createElement` dan `textContent`, bukan `innerHTML`.
 - Tautan internal memakai `api.go()`, `api.goReplace()`, dan `api.withBase()` agar awalan situs konsisten.

@@ -9,22 +9,25 @@ if (new URLSearchParams(location.search).get("sesi") === "berakhir") {
   notice.classList.remove("hidden");
 }
 
-if (!(await auth.redirectIfLoggedIn())) {
-  const form = document.getElementById("form");
-  const errBox = document.getElementById("form-error");
-  const btn = document.getElementById("submit");
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    showFormError(errBox, "");
-    const email = form.email.value.trim();
-    const password = form.password.value;
-    if (!email || !password) return showFormError(errBox, "Email dan kata sandi wajib diisi.");
-    setBusy(btn, true, "Memproses...");
-    try {
-      auth.startSession(await api.post("/login", { email, password }));
-    } catch (err) {
-      showFormError(errBox, err.message);
-      setBusy(btn, false);
-    }
-  });
-}
+const form = document.getElementById("form");
+const errBox = document.getElementById("form-error");
+const btn = document.getElementById("submit");
+
+// Dipasang SEBELUM await apa pun: backend yang baru bangun bisa butuh beberapa detik, dan Enter yang
+// ditekan selama itu tidak boleh sempat mengirim form secara bawaan (kata sandi bisa masuk URL).
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  showFormError(errBox, "");
+  const email = form.email.value.trim();
+  const password = form.password.value;
+  if (!email || !password) return showFormError(errBox, "Email dan kata sandi wajib diisi.");
+  setBusy(btn, true, "Memproses...");
+  try {
+    auth.startSession(await api.post("/login", { email, password }));
+  } catch (err) {
+    showFormError(errBox, err.message);
+    setBusy(btn, false);
+  }
+});
+
+await auth.redirectIfLoggedIn();

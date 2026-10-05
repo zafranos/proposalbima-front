@@ -14,6 +14,7 @@
 // situs produksi tidak pernah terbit menunjuk ke localhost.
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, extname } from "node:path";
+import { iconMarkup } from "../assets/js/icons.js";
 
 const OUT = "dist";
 const SKIP = new Set(["node_modules", OUT, ".git", ".github", "scripts", "tests", "partials", ".tmp"]);
@@ -42,6 +43,22 @@ if (!/^https?:\/\/[^\s/]+$/.test(origin)) {
 const HEAD_MARKER = "<!--@head-->";
 const headPartial = readFileSync("partials/head.html", "utf8").trimEnd();
 
+// <!--@include nama--> disisipi isi partials/nama.html (logo, tombol tema, dsb.), sehingga bagian yang
+// dipakai banyak halaman ditulis sekali. Partial boleh memuat partial lain (maksimal tiga lapis).
+const INCLUDE = /<!--@include ([a-z0-9-]+)-->/g;
+// <!--@icon nama | kelas tailwind--> disisipi SVG dari assets/js/icons.js (sumber yang sama dengan icon() di JS).
+const ICON = /<!--@icon ([a-z0-9-]+)(?: \| ([^>]*?))?-->/g;
+function expandIncludes(text) {
+  for (let pass = 0; pass < 3; pass++) {
+    const next = text
+      .replace(INCLUDE, (_, name) => readFileSync(join("partials", `${name}.html`), "utf8").trimEnd())
+      .replace(ICON, (_, name, cls) => iconMarkup(name, cls || "size-4"));
+    if (next === text) break;
+    text = next;
+  }
+  return text;
+}
+
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
@@ -60,7 +77,7 @@ function walk(dir, rel = "") {
       if ([".html", ".js"].includes(extname(name))) {
         let text = readFileSync(path, "utf8");
         if (name.endsWith(".html")) {
-          text = text.replaceAll(HEAD_MARKER, headPartial);
+          text = expandIncludes(text.replaceAll(HEAD_MARKER, headPartial));
           if (base) text = text.replace(/(\s(?:href|src))="\/(?!\/)/g, `$1="${base}/`);
         }
         writeFileSync(dest, text.replaceAll("__API_ORIGIN__", origin).replaceAll("__BASE_PATH__", base));

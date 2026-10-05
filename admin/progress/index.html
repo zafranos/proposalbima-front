@@ -7,20 +7,23 @@
 <body class="min-h-screen bg-background-1 text-foreground antialiased">
   <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[100] focus:rounded-lg focus:bg-layer focus:px-3 focus:py-2 focus:text-sm focus:shadow">Lewati ke isi</a>
   <div id="admin-nav"></div>
-  <main id="main" class="mx-auto max-w-6xl px-4 pb-16 pt-6">
-    <h1 class="text-2xl font-bold">Progres</h1>
+  <div class="lg:ps-64">
+  <main id="main" class="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6">
+    <h1 class="font-display text-4xl font-medium tracking-tight">Progres</h1>
+    <p class="mt-1.5 text-[15px] text-muted-foreground-1">Pantau kemajuan peserta pada tiap skema.</p>
     <div id="filters" class="mt-4"></div>
     <div id="state" aria-live="polite"></div>
     <section id="funnel-section" class="mt-6 hidden" aria-labelledby="h-funnel">
-      <h2 id="h-funnel" class="text-lg font-semibold">Corong modul alur</h2>
+      <h2 id="h-funnel" class="font-display text-2xl font-medium tracking-tight">Corong modul alur</h2>
       <div id="funnel" class="mt-3 space-y-4"></div>
     </section>
     <section class="mt-8" aria-labelledby="h-peserta">
-      <h2 id="h-peserta" class="text-lg font-semibold">Peserta</h2>
+      <h2 id="h-peserta" class="font-display text-2xl font-medium tracking-tight">Peserta</h2>
       <div id="list" class="mt-3"></div>
       <div id="pager" class="mt-4"></div>
     </section>
   </main>
+  </div>
   <script src="/assets/js/vendor/chart.umd.js"></script>
   <script type="module" src="/assets/js/pages/admin-progress.js"></script>
 </body>

@@ -2,16 +2,17 @@
 // Semua DOM dibangun dengan h() (createElement/textContent), tanpa innerHTML.
 import * as api from "../api.js";
 import * as auth from "../auth.js";
-import { h } from "../ui.js";
+import { h, icon, scrollRegion } from "../ui.js";
 import { renderAdminNav } from "./nav.js";
 
-export const INPUT = "block w-full rounded-lg border border-line-3 bg-layer px-3 py-2 text-sm text-layer-foreground placeholder:text-muted-foreground-1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50";
-export const BTN = "inline-flex items-center justify-center gap-2 rounded-lg border border-line-2 bg-layer px-3 py-1.5 text-sm font-medium hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus disabled:opacity-50";
-export const BTN_PRIMARY = "inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-focus focus:ring-offset-2 disabled:opacity-50";
-export const BTN_DANGER = "inline-flex items-center justify-center gap-2 rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-800 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-600 disabled:opacity-50 dark:border-red-700 dark:text-red-200 dark:hover:bg-red-950";
-export const BTN_DANGER_SOLID = "inline-flex items-center justify-center gap-2 rounded-lg bg-red-700 px-3.5 py-2 text-sm font-medium text-white hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 disabled:opacity-50";
-export const CARD = "rounded-xl border border-layer-line bg-layer shadow-sm";
-export const LINK = "font-medium text-primary-700 hover:underline dark:text-primary-300";
+// Kelas komponen terpusat (lihat @layer components di input.css).
+export const INPUT = "input";
+export const BTN = "btn btn-outline btn-sm";
+export const BTN_PRIMARY = "btn btn-primary";
+export const BTN_DANGER = "btn btn-danger btn-sm";
+export const BTN_DANGER_SOLID = "btn btn-danger-solid";
+export const CARD = "card";
+export const LINK = "link";
 
 // Halaman admin dimulai dengan ini: memastikan peran admin lalu memasang navigasi. false = halaman berpindah.
 export async function startAdmin(active) {
@@ -25,14 +26,14 @@ export function field(id, label, control, hint) {
   control.id = id;
   if (hint) control.setAttribute("aria-describedby", id + "-hint");
   return h("div", {},
-    h("label", { for: id, class: "mb-1.5 block text-sm font-medium", text: label }),
+    h("label", { for: id, class: "label", text: label }),
     control,
-    hint ? h("p", { id: id + "-hint", class: "mt-1 text-xs text-muted-foreground-1", text: hint }) : null);
+    hint ? h("p", { id: id + "-hint", class: "hint", text: hint }) : null);
 }
 
 // options: [[nilai, teks], ...]
 export function select(options, value, attrs = {}) {
-  const el = h("select", { class: INPUT, ...attrs }, options.map(([v, t]) => h("option", { value: v, text: t })));
+  const el = h("select", { class: "select", ...attrs }, options.map(([v, t]) => h("option", { value: v, text: t })));
   if (value != null) el.value = value;
   return el;
 }
@@ -41,27 +42,42 @@ export function select(options, value, attrs = {}) {
 // columns: [teks, ...]; rows: larik baris, tiap baris larik sel (simpul atau teks).
 // Pembungkus yang dapat digulir wajib fokus-able dan berlabel (aksesibilitas gulir keyboard).
 export function table(label, columns, rows) {
-  return h("div", { class: "overflow-x-auto rounded-xl border border-layer-line bg-layer", tabindex: "0", role: "region", "aria-label": label },
-    h("table", { class: "min-w-full divide-y divide-table-line text-sm" },
+  return scrollRegion(h("div", { class: "card overflow-x-auto" },
+    h("table", { class: "tbl" },
       h("caption", { class: "sr-only", text: label }),
-      h("thead", { class: "bg-muted" }, h("tr", {}, columns.map((c) =>
-        h("th", { scope: "col", class: "whitespace-nowrap px-4 py-2.5 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground-1", text: c })))),
-      h("tbody", { class: "divide-y divide-table-line" }, rows.map((r) =>
-        h("tr", {}, r.map((cell) => h("td", { class: "px-4 py-3 align-top" }, cell)))))));
+      h("thead", {}, h("tr", {}, columns.map((c) => h("th", { scope: "col", text: c })))),
+      h("tbody", {}, rows.map((r) => h("tr", {}, r.map((cell) => h("td", {}, cell))))))), label);
 }
 
-export function emptyState(text) {
-  return h("p", { class: "rounded-xl border border-dashed border-line-3 px-4 py-10 text-center text-sm text-muted-foreground-1", text });
+// ico: "search" untuk hasil pencarian kosong; "check-circle" untuk kosong yang menggembirakan (mis. antrean bersih).
+export function emptyState(text, ico = "search") {
+  return h("div", { class: "rounded-2xl border border-dashed border-line-3 px-6 py-14 text-center" },
+    h("span", { class: "mx-auto grid size-11 place-items-center rounded-full bg-muted text-muted-foreground-1" }, icon(ico, "size-5")),
+    h("p", { class: "mt-4 text-sm text-muted-foreground-1", text }));
 }
 
 export function errorState(message, retry) {
-  return h("div", { role: "alert", class: "flex flex-wrap items-center gap-3 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-700 dark:bg-red-950 dark:text-red-100" },
+  return h("div", { role: "alert", class: "alert alert-error flex flex-wrap items-center gap-3" },
     h("span", { text: message }),
     retry ? h("button", { type: "button", class: BTN, on: { click: retry }, text: "Coba lagi" }) : null);
 }
 
 export function loadingState(text = "Memuat...") {
   return h("p", { role: "status", class: "py-6 text-sm text-muted-foreground-1", text });
+}
+
+// Avatar inisial: warna dipilih dari nama sehingga orang yang sama selalu berwarna sama.
+const AVATAR_TONES = [
+  "bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-100",
+  "bg-marker-soft text-marker-ink",
+  "bg-muted text-foreground",
+];
+export function avatar(name, size = "size-9") {
+  const words = String(name || "?").trim().split(/\s+/).filter(Boolean);
+  const initials = ((words[0] || "?")[0] + (words.length > 1 ? words[words.length - 1][0] : "")).toUpperCase();
+  let hash = 0;
+  for (const ch of String(name)) hash = (hash * 31 + ch.codePointAt(0)) >>> 0;
+  return h("span", { class: `grid ${size} shrink-0 place-items-center rounded-full text-xs font-semibold ${AVATAR_TONES[hash % AVATAR_TONES.length]}`, "aria-hidden": "true", text: initials });
 }
 
 // ── Status di URL (dapat dibagikan, tombol kembali tetap benar) ──

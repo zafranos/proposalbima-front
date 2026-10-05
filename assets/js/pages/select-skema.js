@@ -1,7 +1,9 @@
 import "../common.js";
 import * as api from "../api.js";
 import * as auth from "../auth.js";
-import { enrollmentBadge, h, setBusy, showFormError } from "../ui.js";
+import { enrollmentBadge, h, icon, setBusy, showFormError } from "../ui.js";
+
+const IKON = { dasar: "flask", terapan: "wrench" };
 
 if (auth.requireLogin()) {
   const list = document.getElementById("list");
@@ -16,7 +18,7 @@ if (auth.requireLogin()) {
         ...enr.enrollments.map((e) => {
           const btn = h("button", {
             type: "button",
-            class: "rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-focus focus:ring-offset-2 disabled:opacity-50",
+            class: "btn btn-primary btn-sm",
             text: e.skema === current ? "Lanjutkan" : "Pilih",
             on: {
               click: async () => {
@@ -32,9 +34,10 @@ if (auth.requireLogin()) {
               },
             },
           });
-          return h("div", { class: "flex flex-wrap items-center justify-between gap-3 rounded-xl border border-layer-line bg-layer p-4" },
-            h("div", {},
-              h("p", { class: "font-medium", text: e.skema_judul }),
+          return h("div", { class: "card flex flex-wrap items-center gap-4 p-4" },
+            h("span", { class: "grid size-11 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300" }, icon(IKON[e.skema] || "layers", "size-5")),
+            h("div", { class: "min-w-0 flex-1" },
+              h("p", { class: "font-display text-xl font-medium leading-tight", text: e.skema_judul }),
               h("div", { class: "mt-1.5" }, enrollmentBadge(e))),
             btn);
         }),

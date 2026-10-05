@@ -8,7 +8,7 @@ import { renderPager } from "../admin/pager.js";
 // Semua const yang dipakai fungsi di bawah dideklarasikan SEBELUM `await` tingkat modul.
 const DEFAULTS = { skema: "", state: "", page: "1" };
 const STATES = [["", "Semua status"], ["active", "Aktif"], ["disabled", "Nonaktif"], ["expired", "Kedaluwarsa"], ["exhausted", "Kuota habis"]];
-const STATE_BADGE = { active: ["Aktif", "teal"], disabled: ["Nonaktif", "gray"], expired: ["Kedaluwarsa", "amber"], exhausted: ["Kuota habis", "amber"] };
+const STATE_BADGE = { active: ["Aktif", "ok"], disabled: ["Nonaktif", "neutral"], expired: ["Kedaluwarsa", "pending"], exhausted: ["Kuota habis", "pending"] };
 const CODE_RE = /^[A-Z0-9]{4,32}$/;
 const query = readQuery(DEFAULTS);
 const state = document.getElementById("state");
@@ -70,11 +70,11 @@ function render(res) {
   }
   mount(list, table("Daftar kode undangan", ["Kode", "Skema", "Status", "Pemakaian", "Trial", "Kedaluwarsa", "Catatan", "Aksi"],
     res.kode.map((c) => {
-      const [label, tone] = STATE_BADGE[c.state] || [c.state, "gray"];
+      const [label, tone] = STATE_BADGE[c.state] || [c.state, "neutral"];
       return [
         h("div", { class: "flex items-center gap-2" },
-          h("code", { class: "rounded bg-muted px-1.5 py-0.5 font-mono text-sm", text: c.code }),
-          h("button", { type: "button", class: "inline-flex size-7 items-center justify-center rounded-md hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus", "aria-label": `Salin kode ${c.code}`,
+          h("code", { class: "rounded-lg bg-marker-soft px-2 py-1 font-mono text-[13px] font-semibold tracking-wide text-marker-ink", text: c.code }),
+          h("button", { type: "button", class: "inline-flex size-7 items-center justify-center rounded-md hover:bg-muted-hover", "aria-label": `Salin kode ${c.code}`,
             on: { click: async () => {
               const ok = await copyText(c.code);
               toast(ok ? `Kode ${c.code} disalin.` : "Gagal menyalin kode.", ok ? "success" : "error");

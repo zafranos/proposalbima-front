@@ -183,7 +183,7 @@ test("persetujuan admin membuka akses penuh; kartu disalin utuh; progres tersimp
   await done.click();
   await until(async () => (await progressText(page)) === "1 dari 10 selesai", "progres 1 dari 10");
   assert.equal(await page.locator("progress").evaluate((p) => p.value), 1);
-  assert.equal(await page.getByRole("button", { name: /Selesai \(klik/ }).getAttribute("aria-pressed"), "true");
+  assert.equal(await page.getByRole("button", { name: /Selesai \(klik/ }).count(), 1, "keadaan selesai terbaca dari teks tombol");
 
   await page.reload();
   await page.locator("[data-card]").first().waitFor();
@@ -207,12 +207,42 @@ test("ponsel: sidebar menjadi laci yang bisa dibuka dan ditutup", async () => {
   await noPageOverflow(page, "pembaca di 375px");
   // Terlihat menurut Playwright belum berarti ada di layar: laci masih bisa sedang bergeser masuk.
   const onScreen = async () => { const b = await sidebar.boundingBox(); return !!b && b.x >= 0 && b.x < 375; };
-  await page.getByRole("button", { name: "Buka daftar modul" }).click();
+  const toggle = page.getByRole("button", { name: "Daftar modul", exact: true }); // "Tutup daftar modul" juga mengandung kata itu
+  assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+  await toggle.click();
   await until(onScreen, "laci benar-benar masuk layar");
   assert.ok(await page.locator("#sidebar").getByRole("link", { name: /Fase 2/ }).isVisible());
+  // Laci terbuka = modal sungguhan: aria-expanded benar, role dialog, halaman belakang inert, fokus di dalam.
+  assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+  assert.equal(await sidebar.getAttribute("aria-modal"), "true");
+  assert.equal(await page.locator("#page-main").evaluate((el) => el.inert), true, "isi halaman dikunci saat laci terbuka");
+  assert.equal(await page.evaluate(() => document.getElementById("sidebar").contains(document.activeElement)), true, "fokus pindah ke dalam laci");
+  // Tab berputar di dalam laci (tidak bocor ke belakang) dan <summary> grup dapat dijangkau keyboard.
+  const seen = new Set();
+  for (let i = 0; i < 40; i++) {
+    await page.keyboard.press("Tab");
+    const info = await page.evaluate(() => ({ inside: document.getElementById("sidebar").contains(document.activeElement), tag: document.activeElement.tagName, text: document.activeElement.textContent.trim().slice(0, 20) }));
+    // Setelah butir terakhir, Tab boleh keluar dari dokumen ke antarmuka peramban (activeElement = BODY), tetapi tidak
+    // boleh mendarat di isi halaman yang terkunci.
+    assert.ok(info.inside || info.tag === "BODY", `Tab tidak boleh mendarat di luar laci (jatuh di <${info.tag}> "${info.text}")`);
+    seen.add(info.tag);
+  }
+  assert.ok(seen.has("SUMMARY"), "grup Referensi/Lampiran (<summary>) harus terjangkau lewat Tab di laci");
   await shot(page, "04-ponsel-sidebar");
+  // Esc menutup dan mengembalikan fokus ke tombol pembuka.
+  await page.keyboard.press("Escape");
+  await until(async () => !(await onScreen()), "laci keluar dari layar lewat Esc");
+  assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "sidebar-toggle", "fokus kembali ke tombol pembuka");
+  assert.equal(await page.locator("#page-main").evaluate((el) => el.inert), false, "kunci dilepas setelah laci ditutup");
+  await toggle.click();
+  await until(onScreen, "laci terbuka lagi");
   await page.getByRole("button", { name: "Tutup daftar modul" }).click();
   await until(async () => !(await onScreen()), "laci keluar dari layar");
+  // Jalan ke profil tersedia di ponsel (tombol nama pengguna tersembunyi di bawah lebar sm).
+  await toggle.click();
+  assert.ok(await sidebar.getByRole("link", { name: /Profil dan skema/ }).isVisible(), "tautan profil di laci ponsel");
+  await page.keyboard.press("Escape");
   await noLeakyText(page, "pembaca ponsel");
   noIssues();
   await context.close();
@@ -396,6 +426,56 @@ test("rantai pengalihan: profil belum lengkap, skema belum dipilih, lalu pulih",
   await context.close();
 });
 
+test("daftar: Enter sebelum daftar skema termuat tidak mengirim form ke URL (kata sandi tidak bocor)", async () => {
+  const { context, page } = await newPage();
+  // Backend yang baru bangun menjawab lambat: tahan jawaban daftar skema 2,5 detik.
+  await context.route("**/api/skema", async (route) => { await new Promise((r) => setTimeout(r, 2500)); await route.continue(); });
+  await page.goto(WEB + "/register/", { waitUntil: "domcontentloaded" });
+  await page.fill("#name", "Peserta Cepat");
+  await page.fill("#email", `cepat-${uid()}@example.test`);
+  await page.fill("#password", "rahasia-cepat-123");
+  await page.fill("#affiliation", "Universitas Uji");
+  await page.press("#password", "Enter");
+  await page.waitForTimeout(600);
+  assert.equal(new URL(page.url()).search, "", "form tidak boleh dikirim secara bawaan (GET) ke URL");
+  assert.doesNotMatch(page.url(), /password|rahasia/i);
+  assert.match(await page.locator("#form-error").textContent(), /masih dimuat/i, "pengguna diberi tahu, bukan dibiarkan");
+  await page.getByRole("radio", { name: /^Dasar/ }).waitFor({ timeout: 8000 }); // daftar akhirnya termuat
+  noIssues();
+  await context.close();
+});
+
+test("kata sandi: tombol tampil/sembunyi mengubah jenis kolom dan keadaannya terbaca", async () => {
+  const { context, page } = await newPage();
+  await page.goto(WEB + "/login/");
+  const toggle = page.getByRole("button", { name: "Tampilkan kata sandi" });
+  assert.equal(await page.locator("#password").getAttribute("type"), "password");
+  assert.equal(await toggle.getAttribute("aria-pressed"), "false");
+  await page.fill("#password", "abc12345");
+  await toggle.click();
+  assert.equal(await page.locator("#password").getAttribute("type"), "text");
+  assert.equal(await toggle.getAttribute("aria-pressed"), "true");
+  assert.equal(await page.locator("#password").inputValue(), "abc12345", "isi tidak hilang saat jenis kolom berganti");
+  await toggle.click();
+  assert.equal(await page.locator("#password").getAttribute("type"), "password");
+  noIssues();
+  await context.close();
+});
+
+test("halaman publik tidak melebar ke samping di ponsel kecil (360 dan 390 px)", async () => {
+  for (const width of [360, 390]) {
+    for (const path of ["/", "/login/", "/register/", "/forgot-password/"]) {
+      const { context, page } = await newPage({ viewport: { width, height: 760 } });
+      await page.goto(WEB + path);
+      await page.waitForLoadState("networkidle");
+      await noPageOverflow(page, `${path} di ${width}px`);
+      await noLeakyText(page, `${path} di ${width}px`);
+      await context.close();
+    }
+  }
+  noIssues();
+});
+
 test("lupa dan reset kata sandi: tampilan, validasi, dan token salah", async () => {
   const { context, page } = await newPage();
   await page.goto(WEB + "/forgot-password/");
@@ -474,7 +554,7 @@ test("admin: akses dibatasi, navigasi bekerja, dasbor sesuai API dan grafik terg
   }
   await until(() => canvasDrawn(page, 0), "grafik status pendaftaran tergambar");
   await until(() => canvasDrawn(page, 1), "grafik akun tergambar");
-  assert.equal(await page.locator("canvas").count(), 3, "tiga grafik");
+  assert.equal(await page.locator("canvas").count(), 2, "dua grafik (kode undangan berupa kartu angka)");
   await shot(page, "20-admin-dasbor-light");
   await noLeakyText(page, "dasbor admin");
   await noPageOverflow(page, "dasbor admin");
@@ -713,9 +793,13 @@ test("admin di ponsel: menu dapat dibuka dan halaman tidak bergulir ke samping",
   }
   const menu = page.locator("#admin-menu");
   assert.equal(await menu.isVisible(), false, "menu tertutup di awal");
-  await page.getByRole("button", { name: "Buka menu admin" }).click();
-  assert.equal(await menu.isVisible(), true);
-  assert.equal(await page.getByRole("button", { name: "Tutup menu admin" }).getAttribute("aria-expanded"), "true");
+  const menuToggle = page.getByRole("button", { name: "Menu admin" });
+  assert.equal(await menuToggle.getAttribute("aria-expanded"), "false");
+  await menuToggle.click();
+  await menu.waitFor({ state: "visible" }); // laci bertransisi 200 ms: tunggu keadaan akhir, bukan membaca sesaat
+  await until(async () => (await menu.boundingBox()).x >= 0, "laci masuk ke layar");
+  assert.equal(await menuToggle.getAttribute("aria-expanded"), "true");
+  assert.equal(await page.locator("#main").evaluate((el) => el.inert), true, "isi halaman dikunci saat menu terbuka");
   await shot(page, "26-admin-menu-ponsel");
   await menu.getByRole("link", { name: "Pengguna" }).click();
   await page.waitForURL(`**${BASE}/admin/users/**`);
@@ -726,7 +810,7 @@ test("admin di ponsel: menu dapat dibuka dan halaman tidak bergulir ke samping",
 for (const scheme of ["light", "dark"]) {
   test(`aksesibilitas (axe) tanpa pelanggaran: tema ${scheme}`, async () => {
     const pages = [
-      ["/login/", false], ["/register/", false], ["/forgot-password/", false],
+      ["/", false], ["/login/", false], ["/register/", false], ["/forgot-password/", false],
       ["/modul/?slug=beranda", true], ["/modul/?slug=fase-2", true], ["/modul/?slug=lampiran-l3", true], ["/select-skema/", true], ["/profile/", true],
     ];
     const problems = [];
@@ -736,6 +820,7 @@ for (const scheme of ["light", "dark"]) {
       await page.waitForLoadState("networkidle");
       if (path.startsWith("/modul/")) await page.locator("#content h1, #content h2").first().waitFor();
       if (path === "/register/") await page.getByRole("radio").first().waitFor();
+      if (path === "/") await page.locator("#skema-cards article").first().waitFor();
       assert.equal(await page.evaluate(() => document.documentElement.classList.contains("dark")), scheme === "dark", "tema harus mengikuti preferensi sistem");
       if (path === "/modul/?slug=fase-2") await shot(page, `07-fase2-${scheme}`);
       if (path === "/login/") await shot(page, `08-login-${scheme}`);
@@ -762,6 +847,8 @@ for (const scheme of ["light", "dark"]) {
       if (path === "/admin/invite-codes/") {
         await page.getByRole("button", { name: "Buat kode" }).click();
         await page.locator("dialog[open]").waitFor();
+        // Dialog memudar masuk (opasitas < 1 menurunkan kontras terukur): periksa setelah transisi selesai.
+        await until(() => page.evaluate(() => getComputedStyle(document.querySelector("dialog[open]")).opacity === "1"), "dialog selesai bertransisi");
         await shot(page, `28-admin-dialog-${scheme}`);
         await analyze(path + " (dialog terbuka)");
         await page.keyboard.press("Escape");

@@ -4,6 +4,7 @@ import "../common.js";
 import * as api from "../api.js";
 import * as auth from "../auth.js";
 import * as session from "../session.js";
+import { setupDrawer } from "../drawer.js";
 import { badge, formatBytes, formatDate, h, icon, mount, toast } from "../ui.js";
 import { enhanceContent } from "../reader/enhance.js";
 import { renderTabs } from "../reader/tabs.js";
@@ -14,10 +15,17 @@ const params = new URLSearchParams(location.search);
 const slug = params.get("slug") || "beranda";
 
 const GROUPS = [["beranda", null], ["alur", "Alur penyusunan"], ["referensi", "Referensi"], ["lampiran", "Lampiran"]];
-const PROSE = "prose prose-slate max-w-none dark:prose-invert prose-headings:font-semibold prose-a:text-primary-700 dark:prose-a:text-primary-300 prose-code:before:content-none prose-code:after:content-none prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:font-normal";
-const BTN = "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-focus focus:ring-offset-2 disabled:opacity-50";
+const PROSE = "article"; // tipografi isi materi: lihat .article di input.css
+// Penanda di kiri butir hanya menyatakan STATUS (selesai, terkunci, aktif); jenisnya (ikon) hanya untuk non-alur.
+const GRUP_IKON = { beranda: "home", referensi: "book-open", lampiran: "file-text" };
 
 let home = null;
+
+// Laci daftar modul di layar sempit (di layar lebar sidebar selalu tampil).
+setupDrawer({
+  panel: $("sidebar"), toggles: [$("sidebar-toggle")], closers: [$("sidebar-close"), $("sidebar-backdrop")], label: "Daftar modul",
+  inertTargets: () => [$("topbar"), $("page-main"), $("skip-link")],
+});
 
 if (auth.requireLogin()) await main();
 
@@ -51,9 +59,9 @@ async function main() {
 function showMessage(title, text, links = []) {
   const box = $("content");
   mount(box,
-    h("h1", { class: "text-2xl font-bold", text: title }),
+    h("h1", { class: "font-display text-4xl font-medium tracking-tight", text: title }),
     h("p", { class: "mt-3 text-muted-foreground-1", text }),
-    links.length ? h("p", { class: "mt-5 flex gap-3" }, ...links.map(([t, href]) => h("a", { href: api.withBase(href), class: `${BTN} bg-primary text-primary-foreground hover:bg-primary-hover`, text: t }))) : null,
+    links.length ? h("p", { class: "mt-6 flex gap-3" }, ...links.map(([t, href]) => h("a", { href: api.withBase(href), class: "btn btn-primary", text: t }))) : null,
   );
   document.title = title + " | Proposal DIKTI";
   box.focus({ preventScroll: true });
@@ -72,11 +80,11 @@ function paintTopbar() {
   $("skema-name-side").textContent = `Skema ${home.skema.judul}`;
   const box = $("akses-badge");
   if (home.akses === "preview") {
-    mount(box, badge(home.trial && home.trial.habis ? "Trial berakhir: mode pratinjau" : "Mode pratinjau", "amber"));
+    mount(box, badge(home.trial && home.trial.habis ? "Trial berakhir: mode pratinjau" : "Mode pratinjau", "pending"));
   } else if (home.trial && !home.trial.habis) {
-    mount(box, badge(`Trial, sisa ${home.trial.sisa_hari} hari`, "sky"));
+    mount(box, badge(`Trial, sisa ${home.trial.sisa_hari} hari`, "trial"));
   } else {
-    mount(box, badge("Akses penuh", "teal"));
+    mount(box, badge("Akses penuh", "ok"));
   }
 }
 
@@ -95,25 +103,34 @@ function paintSidebar() {
     const list = h("ul", { class: "space-y-0.5" }, ...items.map((m) => h("li", {}, navItem(m))));
     if (!label) return list;
     return h("details", { open: grup === "alur" || (current && current.grup === grup), class: "group" },
-      h("summary", { class: "flex cursor-pointer list-none items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground-1 hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus" },
+      h("summary", { class: "flex cursor-pointer list-none items-center justify-between rounded-lg px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground-1 hover:bg-muted-hover" },
         h("span", { text: label }), icon("chevron-down", "size-4 transition-transform group-open:rotate-180")),
       h("div", { class: "mt-1" }, list));
   }));
 }
 
+// Judul modul berbentuk "Fase 2: State of the art..." atau "A. Aturan ...": kode di depan dijadikan
+// label kecil dan sisanya judul, agar daftar mudah dipindai.
+function splitTitle(judul) {
+  const m = /^([^:]{1,14}):\s+(.+)$/.exec(judul) || /^([A-D])\.\s+(.+)$/.exec(judul);
+  return m ? { code: m[1], title: m[2] } : { code: "", title: judul };
+}
+
 function navItem(m) {
-  const base = "flex items-start gap-2 rounded-lg px-2.5 py-2 text-sm leading-snug";
+  const { code, title } = splitTitle(m.judul);
+  const text = h("span", { class: "min-w-0" },
+    code ? h("span", { class: "block text-[11px] font-semibold uppercase tracking-wider opacity-70", text: code }) : null,
+    h("span", { class: "block", text: title }));
   if (m.terkunci) {
-    return h("span", { class: `${base} cursor-not-allowed text-muted-foreground-1`, "aria-disabled": "true", title: "Terbuka setelah akun disetujui admin" },
-      icon("lock", "mt-0.5 size-3.5"), h("span", { text: m.judul }), h("span", { class: "sr-only", text: "(terkunci)" }));
+    return h("span", { class: "nav-item", "aria-disabled": "true", title: "Terbuka setelah akun disetujui admin" },
+      h("span", { class: "nav-dot" }, icon("lock", "size-3")), text, h("span", { class: "sr-only", text: "(terkunci)" }));
   }
   const on = m.slug === slug;
-  return h("a", {
-    href: api.withBase("/modul/?slug=" + encodeURIComponent(m.slug)),
-    "aria-current": on ? "page" : null,
-    class: `${base} hover:bg-sidebar-nav-hover focus:outline-none focus:ring-2 focus:ring-primary-focus ${on ? "bg-primary-50 font-medium text-primary-900 dark:bg-primary-950 dark:text-primary-100" : "text-sidebar-nav-foreground"}`,
-  }, m.selesai ? icon("check", "mt-0.5 size-3.5 text-teal-700 dark:text-teal-300") : h("span", { class: "mt-0.5 size-3.5 shrink-0" }),
-    h("span", { text: m.judul }), m.selesai ? h("span", { class: "sr-only", text: "(selesai)" }) : null);
+  const dot = m.selesai
+    ? h("span", { class: "nav-dot nav-dot-done" }, icon("check", "size-3"))
+    : h("span", { class: "nav-dot" }, GRUP_IKON[m.grup] ? icon(GRUP_IKON[m.grup], "size-3") : null); // alur: cincin kosong = belum selesai
+  return h("a", { href: api.withBase("/modul/?slug=" + encodeURIComponent(m.slug)), "aria-current": on ? "page" : null, class: "nav-item" },
+    dot, text, m.selesai ? h("span", { class: "sr-only", text: "(selesai)" }) : null);
 }
 
 // ── Isi modul ──
@@ -147,8 +164,8 @@ function paintModul(modul) {
 
   const rv = modul.rujukan_varian;
   mount(box,
-    groupLabel ? h("p", { class: "mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground-1", text: groupLabel }) : null,
-    rv ? h("aside", { class: "mb-6 flex gap-3 rounded-lg border border-sky-300 bg-sky-50 p-4 text-sm text-sky-900 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-100", role: "note" },
+    groupLabel ? h("p", { class: "eyebrow mb-3 flex", text: groupLabel }) : null,
+    rv ? h("aside", { class: "alert alert-info mb-6 flex gap-3", role: "note" },
       icon("info", "mt-0.5 size-4"),
       h("p", {}, rv.teks + " ", h("a", { class: "font-medium underline", href: api.withBase(`/modul/?slug=${encodeURIComponent(rv.modul)}&bagian=${encodeURIComponent(rv.bagian)}`), text: "Buka bagian itu" }), ".")) : null,
     tabs ? tabs.el : null,
@@ -156,7 +173,7 @@ function paintModul(modul) {
     downloadsBlock(modul),
     completeBlock(modul),
     pagerBlock(modul),
-    h("p", { class: "mt-10 border-t border-line-2 pt-4 text-xs text-muted-foreground-1", text: `Materi per ${formatDate(modul.content_version.tanggal)}. Sumber aturan: ${modul.content_version.sumber}.` }),
+    h("p", { class: "mt-12 border-t border-line-2 pt-5 text-xs text-muted-foreground-1", text: `Materi per ${formatDate(modul.content_version.tanggal)}. Sumber aturan: ${modul.content_version.sumber}.` }),
   );
   showToc(initial);
 
@@ -179,11 +196,11 @@ async function downloadFile(id, nama) {
 
 function downloadsBlock(modul) {
   if (!modul.unduhan || !modul.unduhan.length) return null;
-  return h("section", { class: "mt-10", "aria-labelledby": "unduhan-judul" },
-    h("h2", { id: "unduhan-judul", class: "text-lg font-semibold", text: "Berkas unduhan" }),
-    h("ul", { class: "mt-3 space-y-2" }, ...modul.unduhan.map((f) =>
+  return h("section", { class: "mt-12", "aria-labelledby": "unduhan-judul" },
+    h("h2", { id: "unduhan-judul", class: "font-display text-2xl font-medium tracking-tight", text: "Berkas unduhan" }),
+    h("ul", { class: "mt-4 space-y-2" }, ...modul.unduhan.map((f) =>
       h("li", {}, h("button", {
-        type: "button", class: `${BTN} w-full justify-between border border-line-3 bg-layer hover:bg-layer-hover sm:w-auto sm:min-w-80`,
+        type: "button", class: "btn btn-outline w-full justify-between sm:w-auto sm:min-w-80",
         on: { click: () => downloadFile(f.id, f.nama) },
       }, h("span", { class: "inline-flex items-center gap-2" }, icon("download", "size-4"), h("span", { text: f.nama })),
         h("span", { class: "text-xs text-muted-foreground-1", text: formatBytes(f.ukuran) }))))));
@@ -192,15 +209,15 @@ function downloadsBlock(modul) {
 function completeBlock(modul) {
   if (modul.grup !== "alur") return null;
   if (!modul.dapat_selesai) {
-    return h("p", { class: "mt-10 rounded-lg border border-line-2 bg-layer p-4 text-sm text-muted-foreground-1", text: "Progres hanya tersimpan setelah akun Anda disetujui admin." });
+    return h("p", { class: "alert alert-info mt-12", text: "Progres hanya tersimpan setelah akun Anda disetujui admin." });
   }
   let done = modul.selesai;
-  const btn = h("button", { type: "button", class: BTN });
+  const btn = h("button", { type: "button", class: "btn" });
   const paint = () => {
-    btn.setAttribute("aria-pressed", String(done));
+    // Keadaan ada di teks tombol; aria-pressed bersama teks yang berubah akan terbaca ganda.
     btn.dataset.label = "";
     btn.replaceChildren(icon(done ? "check-circle" : "check", "size-4"), h("span", { text: done ? "Selesai (klik untuk membatalkan)" : "Tandai selesai" }));
-    btn.className = `${BTN} ${done ? "border border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100 dark:border-teal-700 dark:bg-teal-950 dark:text-teal-100" : "bg-primary text-primary-foreground hover:bg-primary-hover"}`;
+    btn.className = `btn btn-lg ${done ? "border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-100" : "btn-primary"}`;
   };
   btn.addEventListener("click", async () => {
     btn.disabled = true;
@@ -219,17 +236,17 @@ function completeBlock(modul) {
     btn.disabled = false;
   });
   paint();
-  return h("div", { class: "mt-10" }, btn);
+  return h("div", { class: "mt-12" }, btn);
 }
 
 function pagerBlock(modul) {
   const link = (m, dir) => {
     if (!m) return h("span", {});
     const body = [dir === "prev" ? icon("chevron-left", "size-4") : null, h("span", { class: "min-w-0" }, h("span", { class: "block text-xs text-muted-foreground-1", text: dir === "prev" ? "Sebelumnya" : "Berikutnya" }), h("span", { class: "block truncate text-sm font-medium", text: m.judul })), dir === "next" ? icon("chevron-right", "size-4") : null];
-    const cls = "flex min-w-0 items-center gap-3 rounded-lg border border-line-2 p-3";
+    const cls = "card flex min-w-0 items-center gap-3 p-4 transition-colors";
     return m.terkunci
       ? h("span", { class: `${cls} cursor-not-allowed text-muted-foreground-1`, "aria-disabled": "true" }, ...body, icon("lock", "size-3.5"))
-      : h("a", { href: api.withBase("/modul/?slug=" + encodeURIComponent(m.slug)), class: `${cls} hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus ${dir === "next" ? "justify-end text-end" : ""}` }, ...body);
+      : h("a", { href: api.withBase("/modul/?slug=" + encodeURIComponent(m.slug)), class: `${cls} hover:bg-muted-hover ${dir === "next" ? "justify-end text-end" : ""}` }, ...body);
   };
   return h("nav", { class: "mt-8 grid gap-3 sm:grid-cols-2", "aria-label": "Navigasi modul" }, link(modul.prev, "prev"), link(modul.next, "next"));
 }

@@ -1,18 +1,22 @@
 /* Titik masuk Tailwind v4. Dikompilasi ke dist/assets/css/app.css oleh `npm run build:css`.
-   Sumber kelas: semua HTML dan JS di repo (otomatis, mengikuti .gitignore) + JS Preline. */
-@import "tailwindcss";
-@plugin "@tailwindcss/typography";
+   Sumber kelas: semua HTML dan JS di repo (otomatis, mengikuti .gitignore) + JS Preline.
 
-/* Preline UI: varian kelas, sumber kelas dinamis milik pluginnya, dan token tema semantik. */
-@source "../../node_modules/preline/dist/*.js";
+   Sistem desain "tinta": petrol (tinta), kuning stabilo (aksen), kertas hangat (latar); judul berhuruf serif
+   (Newsreader) dan antarmuka berhuruf Inter. Warna ada di assets/css/themes/tinta.css (token semantik Preline);
+   file ini memuat font, bentuk (bayangan, gerak), dan pustaka komponen terpusat agar HTML dan JS memakai kelas
+   semantik (.btn, .card, .chip, ...) dan bukan menyalin utilitas panjang di tiap halaman. */
+@import "tailwindcss";
+
+/* Preline UI: varian kelas dan token tema semantik (JS-nya tidak dipakai; laci dan dialog dibuat sendiri). */
 @import "../../node_modules/preline/variants.css";
 @import "../../node_modules/preline/theme.css";
+@import "./themes/tinta.css";
 
 /* Mode gelap lewat kelas .dark pada <html> (diatur theme-init.js dan common.js); sama dengan .dark milik Preline. */
 @custom-variant dark (&:where(.dark, .dark *));
 html.dark { color-scheme: dark; }
 
-/* Font dihosting sendiri (tanpa Google Fonts, supaya CSP font-src 'self'). */
+/* ── Font dihosting sendiri (tanpa Google Fonts, supaya CSP font-src 'self') ── */
 @font-face {
   font-family: "Inter Variable";
   font-style: normal;
@@ -29,37 +33,258 @@ html.dark { color-scheme: dark; }
   src: url("../fonts/inter-latin-ext-wght-normal.woff2") format("woff2-variations");
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
+/* Newsreader (judul): sumbu opsz membuat huruf besar lebih kontras dan huruf kecil lebih terbaca. */
+@font-face {
+  font-family: "Newsreader Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("../fonts/newsreader-latin-opsz-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Newsreader Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("../fonts/newsreader-latin-ext-opsz-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
 
 @theme {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Newsreader Variable", ui-serif, Georgia, "Times New Roman", serif;
+
+  /* Bayangan lembut berwarna tinta (bukan abu-abu murni) supaya kartu terasa menyatu dengan kertas. */
+  --shadow-soft: 0 1px 2px rgb(10 40 55 / 0.05), 0 10px 28px -14px rgb(10 40 55 / 0.16);
+  --shadow-lift: 0 2px 4px rgb(10 40 55 / 0.06), 0 28px 56px -24px rgb(10 40 55 / 0.32);
+
+  --animate-rise: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-float: float 8s ease-in-out infinite;
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
 }
 
-/* Identitas warna: skala primary Preline (bawaan biru) diganti teal. Tombol memakai teal-700
-   (teks putih di atasnya >= 4.5:1); di mode gelap tombol tetap teal-700 karena teal-600 + putih
-   hanya ~3.7:1. Kontras seluruh halaman diperiksa dengan axe di uji peramban. */
-:root {
-  --primary-50: var(--color-teal-50);
-  --primary-100: var(--color-teal-100);
-  --primary-200: var(--color-teal-200);
-  --primary-300: var(--color-teal-300);
-  --primary-400: var(--color-teal-400);
-  --primary-500: var(--color-teal-500);
-  --primary-600: var(--color-teal-600);
-  --primary-700: var(--color-teal-700);
-  --primary-800: var(--color-teal-800);
-  --primary-900: var(--color-teal-900);
-  --primary-950: var(--color-teal-950);
-
-  --primary: var(--color-teal-700);
-  --primary-hover: var(--color-teal-800);
-  --primary-focus: var(--color-teal-800);
-  --primary-active: var(--color-teal-800);
-  --primary-checked: var(--color-teal-700);
+/* Aksen stabilo sebagai warna semantik (bg-marker, text-marker-ink, ...). Nilainya dari token tema. */
+@theme inline {
+  --color-marker: var(--marker);
+  --color-marker-strong: var(--marker-strong);
+  --color-marker-soft: var(--marker-soft);
+  --color-marker-line: var(--marker-line);
+  --color-marker-ink: var(--marker-ink);
 }
-.dark {
-  --primary: var(--color-teal-700);
-  --primary-hover: var(--color-teal-600);
-  --primary-focus: var(--color-teal-600);
-  --primary-active: var(--color-teal-600);
-  --primary-checked: var(--color-teal-700);
+
+@layer base {
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  /* Anchor ke bagian tidak tertutup header lengket. */
+  [id] { scroll-margin-top: 5rem; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+  body { font-family: var(--font-sans); }
+  /* Teks yang dipilih tampak seperti disorot stabilo: sentuhan merek yang kecil tetapi konsisten. */
+  ::selection { background: color-mix(in oklab, var(--marker) 70%, transparent); color: var(--foreground); }
+  .dark ::selection { background: color-mix(in oklab, var(--marker) 38%, transparent); }
+  /* Penanda isian bergaya stabilo: <mark> di mana pun (landing, pembaca) tampil sebagai sorotan. */
+  mark {
+    background-color: color-mix(in oklab, var(--marker) 78%, transparent);
+    color: inherit;
+    border-radius: 0.25rem;
+    padding: 0.05em 0.3em;
+  }
+  .dark mark { background-color: color-mix(in oklab, var(--marker) 30%, transparent); }
+  /* Tanya jawab: penanda bawaan <details> diganti ikon sendiri. */
+  .faq summary { list-style: none; }
+  .faq summary::-webkit-details-marker { display: none; }
+  :where(h1, h2, h3) { text-wrap: balance; }
+  :where(p, li) { text-wrap: pretty; }
+  /* Fokus papan ketik selalu terlihat dan seragam (WCAG 2.4.7, 2.4.11). */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--primary-focus);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* ── Tata letak ── */
+  .container-page { @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8; }
+  .section { @apply py-16 sm:py-24; }
+
+  /* ── Merek ── */
+  .brand { @apply inline-flex items-center gap-2.5 rounded-lg font-display text-lg font-semibold tracking-tight whitespace-nowrap text-foreground sm:text-xl; }
+  .brand-mark { @apply size-8 shrink-0; }
+
+  /* ── Tombol ── */
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-transparent px-4 py-2.5 text-sm font-semibold leading-5 whitespace-nowrap transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50; }
+  .btn-primary { @apply bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover; }
+  .btn-outline { @apply border-line-3 bg-layer text-foreground hover:bg-muted-hover; }
+  .btn-ghost { @apply text-foreground hover:bg-muted-hover; }
+  .btn-danger { @apply border-red-300 bg-layer text-red-800 hover:bg-red-50 dark:border-red-700 dark:text-red-200 dark:hover:bg-red-950; }
+  .btn-danger-solid { @apply bg-red-700 text-white hover:bg-red-800; }
+  .btn-sm { @apply rounded-lg px-3 py-1.5 text-sm; }
+  .btn-lg { @apply rounded-2xl px-6 py-3.5 text-base; }
+  .icon-btn { @apply inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-line-2 bg-layer text-foreground transition-colors hover:bg-muted-hover; }
+
+  /* ── Tautan ── */
+  /* Bergaris bawah bawaan: tautan tidak boleh hanya dibedakan lewat warna (WCAG 1.4.1). */
+  .link { @apply font-medium text-primary-700 underline decoration-primary-300/70 underline-offset-4 transition-colors hover:decoration-primary-700 dark:text-primary-300 dark:decoration-primary-700 dark:hover:decoration-primary-300; }
+
+  /* ── Permukaan ── */
+  .card { @apply rounded-2xl border border-layer-line bg-layer text-layer-foreground shadow-soft; }
+  .card-pad { @apply p-6 sm:p-8; }
+
+  /* ── Formulir ── */
+  .label { @apply mb-1.5 block text-sm font-medium text-foreground; }
+  .hint { @apply mt-1.5 text-xs text-muted-foreground-1; }
+  .input, .select, .textarea {
+    @apply block w-full rounded-xl border border-line-3 bg-layer px-3.5 py-2.5 text-sm text-layer-foreground transition-colors placeholder:text-muted-foreground-1 disabled:opacity-50;
+  }
+  .input:focus-visible, .select:focus-visible, .textarea:focus-visible { outline-offset: 0; border-color: var(--primary); }
+  .select {
+    @apply appearance-none pe-10 bg-no-repeat;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23718087' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0.75rem center;
+    background-size: 1.125rem;
+  }
+
+  /* ── Pemberitahuan ── */
+  .alert { @apply rounded-xl border px-4 py-3 text-sm; }
+  .alert-error { @apply border-red-300 bg-red-50 text-red-900 dark:border-red-700 dark:bg-red-950 dark:text-red-100; }
+  .alert-success { @apply border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-100; }
+  .alert-info { @apply border-primary-200 bg-primary-50 text-primary-900 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-100; }
+
+  /* ── Lencana status ── */
+  .chip { @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap; }
+  .chip-dot::before { content: ""; @apply size-1.5 rounded-full bg-current; }
+  .chip-neutral { @apply border-line-2 bg-muted text-foreground; }
+  .chip-primary { @apply border-primary-200 bg-primary-50 text-primary-800 dark:border-primary-700 dark:bg-primary-950 dark:text-primary-100; }
+  .chip-marker { @apply border-marker-line bg-marker-soft text-marker-ink; }
+  .chip-success { @apply border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-100; }
+  .chip-danger { @apply border-red-300 bg-red-50 text-red-900 dark:border-red-700 dark:bg-red-950 dark:text-red-100; }
+
+  /* ── Tipografi merek ── */
+  .eyebrow { @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary-700 dark:text-primary-300; }
+  /* Sorotan stabilo di bawah frasa kunci judul. box-decoration-break menjaga sorotan utuh bila frasa turun baris. */
+  .marker-hl {
+    background-image: linear-gradient(transparent 60%, color-mix(in oklab, var(--marker) 85%, transparent) 60% 92%, transparent 92%);
+    padding-inline: 0.1em 0.04em;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  .dark .marker-hl { background-image: linear-gradient(transparent 60%, color-mix(in oklab, var(--marker) 38%, transparent) 60% 92%, transparent 92%); }
+
+  /* ── Latar dekoratif ── */
+  .bg-dots {
+    background-image: radial-gradient(color-mix(in oklab, var(--foreground) 16%, transparent) 1px, transparent 1.2px);
+    background-size: 22px 22px;
+  }
+  .glow-inverse {
+    background-image:
+      radial-gradient(70% 60% at 0% 0%, color-mix(in oklab, var(--color-tinta-500) 50%, transparent), transparent 65%),
+      radial-gradient(55% 45% at 100% 100%, color-mix(in oklab, var(--color-tinta-700) 55%, transparent), transparent 70%);
+  }
+  .hero-glow {
+    background-image:
+      radial-gradient(60% 50% at 18% 8%, color-mix(in oklab, var(--primary-300) 38%, transparent), transparent 70%),
+      radial-gradient(45% 40% at 88% 4%, color-mix(in oklab, var(--marker) 35%, transparent), transparent 70%);
+  }
+  .dark .hero-glow {
+    background-image:
+      radial-gradient(60% 50% at 18% 8%, color-mix(in oklab, var(--primary-600) 38%, transparent), transparent 70%),
+      radial-gradient(45% 40% at 88% 4%, color-mix(in oklab, var(--marker) 14%, transparent), transparent 70%);
+  }
+
+  /* ── Navigasi samping (pembaca dan admin) ── */
+  .side-link { @apply flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted-hover; }
+  .side-link[aria-current="page"] { @apply bg-primary-50 text-primary-800 dark:bg-primary-950 dark:text-primary-100; }
+
+
+  /* ── Artikel materi (isi dirender server): tipografi buatan sendiri, bukan plugin prose, supaya
+        hasilnya deterministik dan mengikuti token tema. Elemen bersarang memakai :where() agar mudah ditimpa. ── */
+  .article { @apply text-[1.0625rem] leading-[1.8] text-foreground; }
+  .article > :where(* + *) { margin-top: 1.15em; }
+  .article :where(h1) { @apply font-display text-4xl font-medium leading-[1.08] tracking-tight sm:text-5xl; margin-top: 0; }
+  .article :where(h2) { @apply font-display text-3xl font-medium leading-tight tracking-tight; margin-top: 2.6em; }
+  .article :where(h3) { @apply font-display text-2xl font-medium leading-snug tracking-tight; margin-top: 2.1em; }
+  .article :where(h4) { @apply text-base font-semibold; margin-top: 1.7em; }
+  .article :where(h2, h3, h4) + :where(*) { margin-top: 0.7em; }
+  .article :where(a) { @apply font-medium text-primary-700 underline decoration-primary-300 underline-offset-4 transition-colors hover:decoration-primary-700 dark:text-primary-300 dark:decoration-primary-700 dark:hover:decoration-primary-300; }
+  .article :where(strong) { @apply font-semibold text-foreground; }
+  .article :where(ul) { @apply list-disc ps-6 marker:text-primary-400; }
+  .article :where(ol) { @apply list-decimal ps-6 marker:font-semibold marker:text-primary-600 dark:marker:text-primary-300; }
+  .article :where(li) { margin-top: 0.45em; }
+  .article :where(li > ul, li > ol) { margin-top: 0.45em; }
+  .article :where(code):not(pre code) { @apply rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.86em] text-primary-800 dark:text-primary-200; }
+  .article :where(blockquote) { @apply rounded-e-xl border-s-4 border-marker-line bg-marker-soft/50 px-5 py-3; }
+  .article :where(hr) { @apply my-12 border-line-2; }
+  .article :where(table) { @apply w-full border-collapse text-sm leading-6; }
+  .article :where(thead th) { @apply border-b-2 border-line-3 px-3 py-2.5 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground-1; }
+  .article :where(tbody td) { @apply border-b border-line-2 px-3 py-2.5 align-top; }
+  .article :where(tbody tr:hover) { @apply bg-muted/60; }
+
+  /* Kartu salin: kepala berwarna petrol (judul + tombol), isi monospasi dengan penanda stabilo. */
+  /* overflow: clip (bukan hidden) agar kepala kartu bisa lengket saat kartu panjang digulir. */
+  .code-card { @apply my-7 rounded-2xl border border-line-2 bg-layer shadow-soft; overflow: clip; }
+  .code-card-head { @apply sticky top-14 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-line-2 bg-primary-50 px-4 py-2.5 dark:bg-primary-950; }
+  .code-card pre, .code-block pre { @apply m-0 overflow-x-auto whitespace-pre-wrap break-words bg-layer p-5 font-mono text-[13.5px] leading-[1.75] text-foreground; }
+  .code-block pre { @apply pe-24; }
+  .code-block { @apply relative my-6 overflow-hidden rounded-2xl border border-line-2 bg-layer; }
+
+  /* ── Navigasi modul (sidebar pembaca) ── */
+  .nav-item { @apply flex items-start gap-3 rounded-xl px-3 py-2 text-sm leading-snug text-sidebar-nav-foreground transition-colors hover:bg-sidebar-nav-hover; }
+  .nav-item[aria-current="page"] { @apply bg-primary-50 text-primary-900 dark:bg-primary-950 dark:text-primary-50; }
+  .nav-item[aria-disabled="true"] { @apply cursor-not-allowed text-muted-foreground-1 hover:bg-transparent; }
+  .nav-dot { @apply mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border border-line-3 text-[10px] font-semibold text-muted-foreground-1; }
+  .nav-item[aria-current="page"] .nav-dot { @apply border-primary bg-primary text-primary-foreground; }
+  .nav-dot-done { @apply border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300; }
+  .nav-item[aria-current="page"] .nav-dot-done { @apply border-emerald-600 bg-emerald-600 text-white; }
+
+  /* ── Tab bergaya segmen ── */
+  .tab-list { @apply mb-6 inline-flex max-w-full flex-wrap gap-1 rounded-xl bg-muted p-1; }
+  .tab { @apply rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground-1 transition-colors hover:text-foreground; }
+  .tab[aria-selected="true"] { @apply bg-layer text-foreground shadow-sm dark:bg-muted-hover; }
+
+  /* ── Daftar isi halaman ── */
+  .toc-link { @apply block border-s-2 border-transparent py-1 ps-3 text-sm text-muted-foreground-1 transition-colors hover:text-foreground; }
+  .toc-link[aria-current="location"] { @apply border-primary font-medium text-foreground; }
+
+  /* ── Tabel admin ── */
+  .tbl { @apply min-w-full divide-y divide-table-line text-sm; }
+  .tbl thead { @apply bg-muted; }
+  .tbl th { @apply whitespace-nowrap px-4 py-2.5 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground-1; }
+  .tbl td { @apply px-4 py-3 align-top; }
+  .tbl tbody tr { @apply transition-colors hover:bg-muted/60; }
+  .tbl tbody { @apply divide-y divide-table-line; }
+
+  /* ── Batang progres: <progress> bawaan memakai warna peramban (hijau/biru), jadi diganti token tema. ── */
+  .meter { @apply h-2 w-full overflow-hidden rounded-full; appearance: none; border: 0; background: var(--border-line-2); }
+  .meter::-webkit-progress-bar { background: var(--border-line-2); border-radius: 9999px; }
+  .meter::-webkit-progress-value { background: var(--primary); border-radius: 9999px; transition: width 0.3s ease; }
+  .meter::-moz-progress-bar { background: var(--primary); border-radius: 9999px; }
+
+  /* ── Laci samping (assets/js/drawer.js) ──
+     Meluncur lewat properti `translate` (Tailwind v4 memakainya, bukan `transform`). Saat dibuka, visibility langsung
+     terlihat agar isinya bisa difokus; saat ditutup, visibility menunggu luncuran selesai. */
+  .drawer { transition: translate 0.2s ease, visibility 0s linear 0.2s; }
+  .drawer.is-open { transition: translate 0.2s ease, visibility 0s; }
+
+  /* ── Dialog (elemen <dialog> bawaan) ── */
+  dialog.modal {
+    @apply m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-layer-line bg-layer p-0 text-layer-foreground shadow-lift;
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.2s ease, transform 0.2s ease, overlay 0.2s allow-discrete, display 0.2s allow-discrete;
+  }
+  dialog.modal::backdrop { background: rgb(6 22 30 / 0.55); backdrop-filter: blur(3px); }
+  @starting-style {
+    dialog.modal[open] { opacity: 0; transform: translateY(10px) scale(0.98); }
+  }
+
 }

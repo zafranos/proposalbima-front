@@ -1,8 +1,8 @@
 import "../common.js";
 import * as api from "../api.js";
-import { badge, enrollmentBadge, formatDate, h, mount } from "../ui.js";
+import { badge, enrollmentBadge, formatDateShort, h, mount } from "../ui.js";
 import { actionsFor } from "../admin/enrollment-actions.js";
-import { INPUT, debounce, emptyState, errorState, field, link, loadSkema, loadingState, orDash, readQuery, select, startAdmin, table, writeQuery } from "../admin/kit.js";
+import { INPUT, avatar, debounce, emptyState, errorState, field, link, loadSkema, loadingState, orDash, readQuery, select, startAdmin, table, writeQuery } from "../admin/kit.js";
 import { renderPager } from "../admin/pager.js";
 
 // Bawaan "pending": pekerjaan utama halaman ini adalah meninjau pendaftar yang menunggu.
@@ -57,19 +57,20 @@ async function load() {
 
 function render(res) {
   if (!res.enrollments.length) {
-    mount(list, emptyState(query.status === "pending" && !query.q && !query.skema ? "Tidak ada pendaftaran yang menunggu persetujuan." : "Tidak ada pendaftaran yang cocok."));
+    const antreanBersih = query.status === "pending" && !query.q && !query.skema;
+    mount(list, emptyState(antreanBersih ? "Tidak ada pendaftaran yang menunggu persetujuan." : "Tidak ada pendaftaran yang cocok.", antreanBersih ? "check-circle" : "search"));
     mount(pager);
     return;
   }
   mount(list, table("Daftar pendaftaran", ["Peserta", "Afiliasi", "Skema", "Status", "Mendaftar", "Aksi"],
     res.enrollments.map(({ enrollment: e, user: u }) => [
-      h("div", {}, link(`/admin/users-detail/?id=${encodeURIComponent(u.id)}`, u.name), h("div", { class: "text-xs text-muted-foreground-1", text: u.email }),
-        u.is_active ? null : h("div", { class: "mt-1" }, badge("Akun nonaktif", "red"))),
+      h("div", { class: "flex items-center gap-3" }, avatar(u.name), h("div", { class: "min-w-0" }, link(`/admin/users-detail/?id=${encodeURIComponent(u.id)}`, u.name), h("div", { class: "text-xs text-muted-foreground-1", text: u.email }),
+        u.is_active ? null : h("div", { class: "mt-1" }, badge("Akun nonaktif", "danger")))),
       orDash(u.affiliation),
       e.skema_judul,
       h("div", { class: "space-y-1" }, enrollmentBadge(e),
         e.used_invite_code ? h("div", { class: "text-xs text-muted-foreground-1", text: `Kode ${e.used_invite_code}` }) : null),
-      formatDate(e.enrolled_at),
+      h("span", { class: "whitespace-nowrap", text: formatDateShort(e.enrolled_at) }),
       actionsFor(e, u.name, load),
     ])));
   renderPager(pager, res.meta, (page) => { query.page = String(page); load(); });

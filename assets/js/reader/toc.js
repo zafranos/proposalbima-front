@@ -11,7 +11,7 @@ export function buildToc(panel, listEl, mobileListEl) {
     h("a", {
       href: "#" + el.id,
       "data-toc": el.id,
-      class: `block rounded px-2 py-1 text-sm text-muted-foreground-1 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary-focus ${el.tagName === "H3" ? "ms-3" : ""}`,
+      class: `toc-link ${el.tagName === "H3" ? "ps-6" : ""}`,
       text: el.textContent,
     }));
   const empty = () => h("p", { class: "text-xs text-muted-foreground-1", text: "Tidak ada heading." });
@@ -32,9 +32,6 @@ export function buildToc(panel, listEl, mobileListEl) {
   const setActive = (id) => {
     document.querySelectorAll("[data-toc]").forEach((a) => {
       const on = a.dataset.toc === id;
-      a.classList.toggle("text-foreground", on);
-      a.classList.toggle("font-medium", on);
-      a.classList.toggle("bg-muted", on);
       if (on) a.setAttribute("aria-current", "location"); else a.removeAttribute("aria-current");
     });
   };

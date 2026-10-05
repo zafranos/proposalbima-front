@@ -8,20 +8,6 @@ if (auth.requireLogin()) {
   const form = document.getElementById("form");
   const errBox = document.getElementById("form-error");
   const btn = document.getElementById("submit");
-  try {
-    const me = await auth.loadMe();
-    document.getElementById("email").textContent = me.user.email;
-    form.name.value = me.user.name || "";
-    form.affiliation.value = me.user.affiliation || "";
-    document.getElementById("enrollments").replaceChildren(
-      ...me.enrollments.map((e) =>
-        h("li", { class: "flex flex-wrap items-center justify-between gap-2 rounded-lg border border-layer-line bg-layer px-4 py-3 text-sm" },
-          h("span", { class: "font-medium", text: e.skema_judul }), enrollmentBadge(e))),
-    );
-  } catch (err) {
-    showFormError(errBox, err.message);
-  }
-
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     showFormError(errBox, "");
@@ -38,4 +24,19 @@ if (auth.requireLogin()) {
     }
     setBusy(btn, false);
   });
+
+  // Listener di atas dipasang sebelum await apa pun (lihat catatan di login.js); data dimuat setelahnya.
+  try {
+    const me = await auth.loadMe();
+    document.getElementById("email").textContent = me.user.email;
+    form.name.value = me.user.name || "";
+    form.affiliation.value = me.user.affiliation || "";
+    document.getElementById("enrollments").replaceChildren(
+      ...me.enrollments.map((e) =>
+        h("li", { class: "card flex flex-wrap items-center justify-between gap-3 px-5 py-4" },
+          h("span", { class: "font-display text-xl font-medium", text: e.skema_judul }), enrollmentBadge(e))),
+    );
+  } catch (err) {
+    showFormError(errBox, err.message);
+  }
 }

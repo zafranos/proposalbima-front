@@ -1,11 +1,20 @@
 import "../common.js";
 import * as api from "../api.js";
-import { formatDate, h, mount } from "../ui.js";
-import { COLORS, makeChart } from "../admin/charts.js";
-import { BTN, BTN_PRIMARY, CARD, errorState, link, loadSkema, loadingState, orDash, skemaTitle, startAdmin, table } from "../admin/kit.js";
+import { formatDateShort, h, icon, mount } from "../ui.js";
+import { makeChart } from "../admin/charts.js";
+import { BTN, BTN_PRIMARY, CARD, avatar, errorState, link, loadSkema, loadingState, orDash, skemaTitle, startAdmin, table } from "../admin/kit.js";
 
 const state = document.getElementById("state");
 const content = document.getElementById("content");
+
+// Nada kartu: makna, bukan hiasan. marker = perlu tindakan, success = baik, primary/neutral = informasi.
+const TONES = {
+  primary: "bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300",
+  marker: "bg-marker-soft text-marker-ink",
+  success: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+  danger: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
+  neutral: "bg-muted text-muted-foreground-1",
+};
 
 if (await startAdmin("dasbor")) await load();
 
@@ -22,25 +31,28 @@ async function load() {
 }
 
 // Kartu angka; berupa tautan bila punya tujuan.
-function stat(label, value, { href, hint } = {}) {
+function stat(label, value, { href, hint, ico, tone = "neutral", urgent = false } = {}) {
   const body = [
-    h("p", { class: "text-sm text-muted-foreground-1", text: label }),
-    h("p", { class: "mt-1 text-2xl font-bold", text: String(value) }),
-    hint ? h("p", { class: "mt-1 text-xs text-muted-foreground-1", text: hint }) : null,
+    h("div", { class: "flex items-start justify-between gap-3" },
+      h("p", { class: "text-sm font-medium text-muted-foreground-1", text: label }),
+      h("span", { class: `grid size-9 shrink-0 place-items-center rounded-xl ${TONES[tone]}` }, icon(ico || "info", "size-[18px]"))),
+    h("p", { class: "mt-3 font-display text-4xl font-medium leading-none tracking-tight", text: String(value) }),
+    hint ? h("p", { class: "mt-2 text-xs text-muted-foreground-1", text: hint }) : null,
   ];
+  const cls = `${CARD} block p-5 ${urgent ? "ring-2 ring-marker-line" : ""}`;
   return href
-    ? h("a", { href: api.withBase(href), class: `${CARD} block p-4 hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus` }, body)
-    : h("div", { class: `${CARD} p-4` }, body);
+    ? h("a", { href: api.withBase(href), class: `${cls} transition-colors hover:bg-muted-hover` }, body)
+    : h("div", { class: cls }, body);
 }
 
 function section(title, ...children) {
   return h("section", { "aria-label": title },
-    h("h2", { class: "mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground-1", text: title }), ...children);
+    h("h2", { class: "mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground-1", text: title }), ...children);
 }
 
 function chartBox(title, label) {
   const canvas = h("canvas", { role: "img", "aria-label": label });
-  return { canvas, node: h("div", { class: `${CARD} p-4` }, h("h3", { class: "mb-2 text-sm font-semibold", text: title }), h("div", { class: "h-56" }, canvas)) };
+  return { canvas, node: h("div", { class: `${CARD} min-w-0 p-5` }, h("h3", { class: "mb-3 text-sm font-semibold", text: title }), h("div", { class: "h-56" }, canvas)) };
 }
 
 function render(d, skema, terbaru) {
@@ -48,27 +60,24 @@ function render(d, skema, terbaru) {
   const perSkema = d.per_skema || [];
 
   const cUsers = chartBox("Akun", `Akun aktif ${u.aktif}, nonaktif ${u.nonaktif}`);
-  const cKode = chartBox("Kode undangan", `Kode dapat dipakai ${k.dapat_dipakai} dari ${k.total}`);
   const cEnroll = chartBox("Status pendaftaran per skema", "Jumlah pendaftaran menunggu, trial, dan disetujui per skema; angkanya ada di tabel di bawah grafik.");
 
   mount(content,
+    section("Perlu perhatian",
+      h("div", { class: "grid gap-4 sm:grid-cols-2 lg:grid-cols-4" },
+        stat("Menunggu persetujuan", e.pending, { href: "/admin/enrollments/?status=pending", ico: "hourglass", tone: "marker", urgent: e.pending > 0, hint: e.pending ? "Tinjau sekarang" : "Tidak ada antrean" }),
+        stat("Trial berakhir", e.trial_habis, { href: "/admin/enrollments/?status=trial", ico: "alert-triangle", tone: "neutral" }),
+        stat("Trial aktif", e.trial_aktif, { href: "/admin/enrollments/?status=trial", ico: "clock", tone: "primary" }),
+        stat("Disetujui", e.disetujui, { href: "/admin/enrollments/?status=approved", ico: "check-circle", tone: "success" }))),
     section("Pengguna",
-      h("div", { class: "grid grid-cols-2 gap-3 md:grid-cols-5" },
-        stat("Total", u.total, { href: "/admin/users/" }),
-        stat("Aktif", u.aktif, { href: "/admin/users/?aktif=true" }),
-        stat("Nonaktif", u.nonaktif, { href: "/admin/users/?aktif=false" }),
-        stat("Admin", u.admin, { href: "/admin/users/?role=admin" }),
-        stat("Pendaftar 7 hari", d.pendaftar_7_hari))),
-    section("Pendaftaran dan akses",
-      h("div", { class: "grid grid-cols-2 gap-3 md:grid-cols-5" },
-        stat("Menunggu persetujuan", e.pending, { href: "/admin/enrollments/?status=pending" }),
-        stat("Trial aktif", e.trial_aktif, { href: "/admin/enrollments/?status=trial" }),
-        stat("Trial berakhir", e.trial_habis, { href: "/admin/enrollments/?status=trial" }),
-        stat("Disetujui", e.disetujui, { href: "/admin/enrollments/?status=approved" }),
-        stat("Kode undangan", k.dapat_dipakai, { href: "/admin/invite-codes/", hint: `dapat dipakai dari ${k.total}` }))),
+      h("div", { class: "grid gap-4 sm:grid-cols-2 lg:grid-cols-5" },
+        stat("Total", u.total, { href: "/admin/users/", ico: "users", tone: "primary" }),
+        stat("Aktif", u.aktif, { href: "/admin/users/?aktif=true", ico: "user-check", tone: "success" }),
+        stat("Nonaktif", u.nonaktif, { href: "/admin/users/?aktif=false", ico: "x", tone: "danger" }),
+        stat("Admin", u.admin, { href: "/admin/users/?role=admin", ico: "shield-check", tone: "primary" }),
+        stat("Pendaftar 7 hari", d.pendaftar_7_hari, { ico: "trending-up", tone: "neutral" }))),
     section("Ringkasan visual",
-      h("div", { class: "grid gap-4 lg:grid-cols-3" },
-        h("div", { class: "lg:col-span-2" }, cEnroll.node), h("div", { class: "grid gap-4" }, cUsers.node, cKode.node))),
+      h("div", { class: "grid gap-4 md:grid-cols-2 xl:grid-cols-3" }, cEnroll.node, cUsers.node, kodeCard(k))),
     section("Pendaftaran per skema",
       perSkema.length
         ? table("Pendaftaran per skema", ["Skema", "Menunggu", "Trial", "Disetujui"],
@@ -76,29 +85,38 @@ function render(d, skema, terbaru) {
         : h("p", { class: "text-sm text-muted-foreground-1", text: "Belum ada pendaftaran." })),
     section("Pendaftar terbaru",
       terbaru.length
-        ? table("Pendaftar terbaru", ["Nama", "Email", "Afiliasi", "Terdaftar"],
-          terbaru.map((x) => [link(`/admin/users-detail/?id=${encodeURIComponent(x.id)}`, x.name), x.email, orDash(x.affiliation), formatDate(x.created_at)]))
+        ? table("Pendaftar terbaru", ["Nama", "Afiliasi", "Terdaftar"],
+          terbaru.map((x) => [
+            h("div", { class: "flex items-center gap-3" }, avatar(x.name), h("div", { class: "min-w-0" }, link(`/admin/users-detail/?id=${encodeURIComponent(x.id)}`, x.name), h("div", { class: "text-xs text-muted-foreground-1", text: x.email }))),
+            orDash(x.affiliation), h("span", { class: "whitespace-nowrap", text: formatDateShort(x.created_at) })]))
         : h("p", { class: "text-sm text-muted-foreground-1", text: "Belum ada pengguna." })),
     h("div", { class: "flex flex-wrap gap-3" },
-      h("a", { href: api.withBase("/admin/enrollments/?status=pending"), class: BTN_PRIMARY, text: "Tinjau pendaftar menunggu" }),
-      h("a", { href: api.withBase("/admin/invite-codes/"), class: BTN, text: "Kelola kode undangan" })));
+      h("a", { href: api.withBase("/admin/enrollments/?status=pending"), class: BTN_PRIMARY }, "Tinjau pendaftar menunggu", icon("arrow-right")),
+      h("a", { href: api.withBase("/admin/invite-codes/"), class: "btn btn-outline" }, "Kelola kode undangan")));
 
   const labels = perSkema.map((r) => skemaTitle(skema, r.skema));
-  makeChart(cEnroll.canvas, () => ({
+  makeChart(cEnroll.canvas, (t) => ({
     type: "bar",
     data: { labels, datasets: [
-      { label: "Menunggu", data: perSkema.map((r) => r.pending), backgroundColor: COLORS.amber },
-      { label: "Trial", data: perSkema.map((r) => r.trial), backgroundColor: COLORS.sky },
-      { label: "Disetujui", data: perSkema.map((r) => r.approved), backgroundColor: COLORS.teal },
+      { label: "Menunggu", data: perSkema.map((r) => r.pending), backgroundColor: t.c.pending, borderRadius: 4 },
+      { label: "Trial", data: perSkema.map((r) => r.trial), backgroundColor: t.c.trial, borderRadius: 4 },
+      { label: "Disetujui", data: perSkema.map((r) => r.approved), backgroundColor: t.c.approved, borderRadius: 4 },
     ] },
-    options: { scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } } },
+    options: { scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } } },
   }));
-  makeChart(cUsers.canvas, () => ({
+  makeChart(cUsers.canvas, (t) => ({
     type: "doughnut",
-    data: { labels: ["Aktif", "Nonaktif"], datasets: [{ data: [u.aktif, u.nonaktif], backgroundColor: [COLORS.teal, COLORS.red], borderWidth: 0 }] },
+    data: { labels: ["Aktif", "Nonaktif"], datasets: [{ data: [u.aktif, u.nonaktif], backgroundColor: [t.c.active, t.c.danger], borderWidth: 0 }] },
+    options: { cutout: "68%" },
   }));
-  makeChart(cKode.canvas, () => ({
-    type: "doughnut",
-    data: { labels: ["Dapat dipakai", "Tidak dapat dipakai"], datasets: [{ data: [k.dapat_dipakai, k.total - k.dapat_dipakai], backgroundColor: [COLORS.teal, COLORS.slate], borderWidth: 0 }] },
-  }));
+}
+
+// Kartu kode undangan: angka dan batang pemakaian (donut satu warna tidak memberi informasi apa pun).
+function kodeCard(k) {
+  return h("div", { class: `${CARD} flex min-w-0 flex-col p-5` },
+    h("h3", { class: "text-sm font-semibold", text: "Kode undangan" }),
+    h("p", { class: "mt-4 font-display text-5xl font-medium leading-none tracking-tight", text: String(k.dapat_dipakai) }),
+    h("p", { class: "mt-2 text-sm text-muted-foreground-1", text: `dapat dipakai dari ${k.total} kode` }),
+    k.total > 0 ? h("progress", { class: "meter mt-4", value: String(k.dapat_dipakai), max: String(k.total), "aria-label": `${k.dapat_dipakai} dari ${k.total} kode dapat dipakai` }) : null,
+    h("a", { href: api.withBase("/admin/invite-codes/"), class: "link mt-auto pt-5 text-sm" }, "Kelola kode undangan"));
 }

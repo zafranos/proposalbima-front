@@ -252,7 +252,7 @@ test("ponsel: sidebar menjadi laci yang bisa dibuka dan ditutup", async () => {
   await context.close();
 });
 
-test("Terapan: tab varian dan dasar, callout rujukan, status trial", async () => {
+test("Terapan: daftar dengan kode langsung disetujui; tab varian dan dasar, callout rujukan", async () => {
   const admin = await adminToken();
   const code = (await api("/admin/invite-codes", { method: "POST", token: admin, body: { skema: "terapan" } })).data.kode.code;
   const email = `terapan-${uid()}@example.test`;
@@ -260,7 +260,13 @@ test("Terapan: tab varian dan dasar, callout rujukan, status trial", async () =>
   await registerViaUI(page, { email, skema: "Terapan", code });
   await page.waitForURL("**/modul/?slug=beranda");
   await page.locator("#content h1").waitFor();
-  assert.match(await page.locator("#akses-badge").textContent(), /Trial, sisa 7 hari/);
+  // kode undangan = persetujuan: akses penuh sejak detik pertama, tanpa masa trial dan tanpa halaman menunggu
+  assert.match(await page.locator("#akses-badge").textContent(), /Akses penuh/);
+  assert.doesNotMatch(await page.locator("#akses-badge").textContent(), /[Tt]rial/);
+  const mine = (await api("/me", { token: (await login(email, PASSWORD)).token })).data.enrollments;
+  assert.equal(mine.length, 1);
+  assert.equal(mine[0].status, "approved");
+  assert.equal(mine[0].used_invite_code, code);
 
   await page.goto(WEB + "/modul/?slug=fase-3");
   const tabs = page.getByRole("tab");
@@ -641,11 +647,12 @@ test("admin: kode undangan dibuat, disalin, diubah, dan dinonaktifkan", async ()
   await page.getByRole("button", { name: "Buat kode" }).click();
   let dlg = page.locator("dialog[open]");
   await shot(page, "22-admin-kode-dialog-light");
+  assert.match(await dlg.textContent(), /langsung disetujui/, "dialog menjelaskan bahwa kode = persetujuan");
+  assert.equal(await dlg.getByLabel(/trial/i).count(), 0, "tanpa isian trial");
   await dlg.getByLabel("Kode kustom (opsional)").fill("ab");
   await dlg.getByRole("button", { name: "Buat kode" }).click();
   assert.match(await dlg.locator('[role="alert"]').textContent(), /4 sampai 32/, "kode kustom pendek ditolak");
   await dlg.getByLabel("Kode kustom (opsional)").fill(code.toLowerCase());
-  await dlg.getByLabel("Lama trial (hari)").fill("5");
   await dlg.getByLabel("Kuota pemakaian").fill("2");
   await dlg.getByLabel("Catatan (opsional)").fill("angkatan e2e");
   await dlg.getByRole("button", { name: "Buat kode" }).click();
@@ -653,7 +660,8 @@ test("admin: kode undangan dibuat, disalin, diubah, dan dinonaktifkan", async ()
   const row = page.getByRole("row", { name: new RegExp(code) });
   await row.waitFor();
   const text = await row.textContent();
-  assert.match(text, /0 \/ 2/); assert.match(text, /5 hari/); assert.match(text, /Aktif/); assert.match(text, /angkatan e2e/);
+  assert.match(text, /0 \/ 2/); assert.doesNotMatch(text, /hari/); assert.match(text, /Aktif/); assert.match(text, /angkatan e2e/);
+  assert.equal(await page.getByRole("columnheader", { name: "Trial" }).count(), 0, "tabel kode tanpa kolom trial");
 
   // kode ganda ditolak backend dan galatnya tampil di dialog
   await page.getByRole("button", { name: "Buat kode" }).click();

@@ -68,7 +68,7 @@ function render(res) {
     mount(pager);
     return;
   }
-  mount(list, table("Daftar kode undangan", ["Kode", "Skema", "Status", "Pemakaian", "Trial", "Kedaluwarsa", "Catatan", "Aksi"],
+  mount(list, table("Daftar kode undangan", ["Kode", "Skema", "Status", "Pemakaian", "Kedaluwarsa", "Catatan", "Aksi"],
     res.kode.map((c) => {
       const [label, tone] = STATE_BADGE[c.state] || [c.state, "neutral"];
       return [
@@ -82,7 +82,6 @@ function render(res) {
         skemaTitle(skema, c.skema),
         badge(label, tone),
         `${c.used_count} / ${c.max_uses > 0 ? c.max_uses : "tak terbatas"}`,
-        `${c.trial_days} hari`,
         c.expires_at ? formatDate(c.expires_at) : "—",
         orDash(c.notes),
         h("div", { class: "flex flex-wrap gap-2" },
@@ -110,28 +109,24 @@ function numberInput(value, min, max) {
 async function openCreate() {
   const skemaSel = select(skema.map((s) => [s.slug, s.judul]), (skema[0] || {}).slug);
   const code = h("input", { type: "text", class: INPUT, maxlength: "32", autocomplete: "off", autocapitalize: "characters", spellcheck: "false", placeholder: "Dibuat otomatis bila kosong" });
-  const trial = numberInput(7, 1, 365);
   const max = numberInput(0, 0, 100000);
   const exp = h("input", { type: "date", class: INPUT });
   const notes = h("input", { type: "text", class: INPUT, maxlength: "255", autocomplete: "off" });
   const ok = await modal({
     title: "Buat kode undangan",
-    description: "Peserta yang mendaftar dengan kode ini langsung mendapat trial akses penuh pada skema yang dipilih.",
+    description: "Peserta yang mendaftar atau menambah skema dengan kode ini langsung disetujui dan mendapat akses penuh pada skema yang dipilih, tanpa menunggu admin. Bagikan hanya kepada orang yang Anda setujui.",
     content: h("div", { class: "space-y-4" },
       field("kode-skema", "Skema", skemaSel),
       field("kode-code", "Kode kustom (opsional)", code, "4 sampai 32 huruf atau angka; huruf kecil diubah menjadi huruf besar."),
-      h("div", { class: "grid gap-4 sm:grid-cols-2" },
-        field("kode-trial", "Lama trial (hari)", trial, "1 sampai 365."),
-        field("kode-max", "Kuota pemakaian", max, "0 = tak terbatas.")),
+      field("kode-max", "Kuota pemakaian", max, "Tiap pemakaian langsung menjadi persetujuan. 0 = tak terbatas: siapa pun yang tahu kode dapat mendaftar tanpa batas."),
       field("kode-exp", "Berlaku sampai (opsional)", exp, "Kode tidak dapat dipakai setelah akhir hari ini."),
       field("kode-notes", "Catatan (opsional)", notes)),
     confirmLabel: "Buat kode",
     onSubmit: async () => {
       const custom = code.value.trim().toUpperCase();
       if (custom && !CODE_RE.test(custom)) throw new Error("Kode kustom harus 4 sampai 32 huruf atau angka.");
-      const body = { skema: skemaSel.value, trial_days: Number(trial.value), max_uses: Number(max.value), notes: notes.value.trim() };
+      const body = { skema: skemaSel.value, max_uses: Number(max.value), notes: notes.value.trim() };
       if (!body.skema) throw new Error("Pilih skema.");
-      if (!Number.isInteger(body.trial_days) || body.trial_days < 1 || body.trial_days > 365) throw new Error("Lama trial harus bilangan bulat 1 sampai 365.");
       if (!Number.isInteger(body.max_uses) || body.max_uses < 0 || body.max_uses > 100000) throw new Error("Kuota harus bilangan bulat 0 sampai 100000.");
       if (custom) body.code = custom;
       if (exp.value) body.expires_at = endOfDayISO(exp.value);
@@ -144,17 +139,14 @@ async function openCreate() {
 
 function openEdit(c) {
   const notes = h("input", { type: "text", class: INPUT, maxlength: "255", autocomplete: "off", value: c.notes || "" });
-  const trial = numberInput(c.trial_days, 1, 365);
   const max = numberInput(c.max_uses, 0, 100000);
   const initialDate = toDateInput(c.expires_at);
   const exp = h("input", { type: "date", class: INPUT, value: initialDate });
   return modal({
     title: `Ubah kode ${c.code}`,
-    description: "Kode dan skema tidak dapat diubah. Pemakaian yang sudah terjadi tetap tercatat.",
+    description: "Kode dan skema tidak dapat diubah. Pemakaian yang sudah terjadi tetap tercatat dan persetujuannya tidak dibatalkan.",
     content: h("div", { class: "space-y-4" },
-      h("div", { class: "grid gap-4 sm:grid-cols-2" },
-        field("ubah-trial", "Lama trial (hari)", trial, "1 sampai 365."),
-        field("ubah-max", "Kuota pemakaian", max, `0 = tak terbatas. Sudah dipakai ${c.used_count}.`)),
+      field("ubah-max", "Kuota pemakaian", max, `0 = tak terbatas. Sudah dipakai ${c.used_count}.`),
       field("ubah-exp", "Berlaku sampai", exp, "Kosongkan untuk menghapus batas waktu."),
       field("ubah-notes", "Catatan", notes)),
     confirmLabel: "Simpan",
@@ -163,11 +155,9 @@ function openEdit(c) {
       // (backend menolak expires_at di masa lalu) sehingga catatan kode kedaluwarsa tetap bisa diubah.
       const body = {};
       if (notes.value.trim() !== (c.notes || "")) body.notes = notes.value.trim();
-      if (Number(trial.value) !== c.trial_days) body.trial_days = Number(trial.value);
       if (Number(max.value) !== c.max_uses) body.max_uses = Number(max.value);
       if (exp.value !== initialDate) body.expires_at = exp.value ? endOfDayISO(exp.value) : null;
       if (!Object.keys(body).length) throw new Error("Tidak ada perubahan.");
-      if ("trial_days" in body && (!Number.isInteger(body.trial_days) || body.trial_days < 1 || body.trial_days > 365)) throw new Error("Lama trial harus bilangan bulat 1 sampai 365.");
       if ("max_uses" in body && (!Number.isInteger(body.max_uses) || body.max_uses < 0 || body.max_uses > 100000)) throw new Error("Kuota harus bilangan bulat 0 sampai 100000.");
       await api.patch(`/admin/invite-codes/${encodeURIComponent(c.id)}`, body);
       toast(`Kode ${c.code} diperbarui.`);

@@ -67,7 +67,8 @@ assets/js/reader/     enhance (kartu, sorotan penanda, tabel, unduhan), toc (scr
 
 ## Deploy
 
-`.github/workflows/pages.yml` membangun, memeriksa, dan mengunggah `dist/`. **Belum pernah dijalankan**
-(akun GitHub untuk Pages belum ditentukan). Dibutuhkan: variabel repo `API_BASE_URL` (alamat fungsi GCF)
-dan Pages diaktifkan dengan sumber "GitHub Actions". Peringatan npm tentang skrip instal `@parcel/watcher`
+`.github/workflows/pages.yml` membangun, memeriksa, dan mengunggah `dist/`. **Belum pernah dijalankan.** Akun:
+organisasi GitHub `zafranos`; repo situs organisasi harus bernama `zafranos.github.io` (alamat
+`https://zafranos.github.io`, di akar domain sehingga tautan berawalan `/` bekerja). Dibutuhkan: variabel repo
+`API_BASE_URL` (alamat fungsi GCF, belum ada) dan Pages diaktifkan dengan sumber "GitHub Actions". Peringatan npm tentang skrip instal `@parcel/watcher`
 tidak relevan: paket itu hanya dipakai mode `--watch` Tailwind, bukan build.

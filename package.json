@@ -10,6 +10,8 @@
     "dev": "npm run build && node scripts/serve.mjs",
     "serve": "node scripts/serve.mjs",
     "check": "node scripts/check.mjs",
+    "make:og": "node scripts/make-og.mjs",
+    "make:logo": "node scripts/make-logo.mjs",
     "test:e2e": "node tests/e2e/run.mjs",
     "test:e2e:subpath": "E2E_BASE_PATH=/proposalbima-front node tests/e2e/run.mjs"
   },

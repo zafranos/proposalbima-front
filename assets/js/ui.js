@@ -1,5 +1,6 @@
 // Pembantu UI. Semua DOM dibangun dengan createElement dan textContent (tanpa innerHTML),
 // kecuali isi materi dari server yang sudah dirender dan dilint di backend.
+import { config } from "./config.js";
 import { ICONS } from "./icons.js";
 
 // h("div", {class: "x", "aria-label": "y", on: {click: fn}, data: {k: "v"}, text: "teks"}, ...anak)
@@ -60,22 +61,9 @@ export function icon(name, cls = "size-4") {
   return svg;
 }
 
-// Tanda merek (huruf P dengan garis stabilo di bawahnya), padanan partials/logo.html untuk komponen yang dibangun JS.
+// Tanda merek (lambang ZafranOS), padanan partials/logo.html untuk komponen yang dibangun JS.
 export function logoMark(cls = "brand-mark") {
-  const svg = document.createElementNS(SVG_NS, "svg");
-  svg.setAttribute("viewBox", "0 0 32 32");
-  svg.setAttribute("aria-hidden", "true");
-  svg.setAttribute("focusable", "false");
-  svg.setAttribute("class", cls);
-  const add = (tag, attrs) => {
-    const el = document.createElementNS(SVG_NS, tag);
-    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
-    svg.append(el);
-  };
-  add("rect", { width: 32, height: 32, rx: 9, class: "fill-primary" });
-  add("path", { class: "fill-white", "fill-rule": "evenodd", d: "M10 6h6.4a5.6 5.6 0 0 1 0 11.2H13.5v5.3H10zM13.5 9.1h2.7a2.5 2.5 0 0 1 0 5h-2.7z" });
-  add("rect", { x: 8, y: 24.4, width: 16, height: 3, rx: 1.5, class: "fill-marker-strong" });
-  return svg;
+  return h("img", { src: config.basePath + "/assets/img/logo-mark.png", alt: "", width: "32", height: "32", class: cls });
 }
 
 // Pesan dari backend diawali huruf kecil; di UI diawali huruf kapital.

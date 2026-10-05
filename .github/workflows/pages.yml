@@ -56,10 +56,14 @@ jobs:
           PDK_API_ORIGIN: ${{ vars.API_BASE_URL }}
           PDK_REQUIRE_API_ORIGIN: "1"
           PDK_BASE_PATH: ${{ steps.base.outputs.base }}
+          # Variabel repo SITE_URL (opsional): alamat publik situs, mis. https://proposalbima.zafranos.work.
+          # Mengisi canonical, Open Graph, sitemap.xml, dan baris Sitemap di robots.txt.
+          PDK_SITE_URL: ${{ vars.SITE_URL }}
         run: npm run build
       - name: Periksa aturan CSP, tanpa CDN, dan awalan situs
         env:
           PDK_BASE_PATH: ${{ steps.base.outputs.base }}
+          PDK_SITE_URL: ${{ vars.SITE_URL }}
         run: npm run check
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

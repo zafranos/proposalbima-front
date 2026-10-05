@@ -12,12 +12,20 @@
 // Origin API ikut masuk ke CSP (connect-src) dan ke config.js. Di CI
 // (PDK_REQUIRE_API_ORIGIN=1) build gagal bila PDK_API_ORIGIN kosong, supaya
 // situs produksi tidak pernah terbit menunjuk ke localhost.
+//
+// Mesin pencari: hanya halaman yang memakai penanda <!--@head:index--> (landing) boleh diindeks; semua halaman
+// lain (<!--@head-->) bertanda noindex. PDK_SITE_URL (mis. https://proposalbima.zafranos.work, tanpa path)
+// mengisi __SITE_URL__ pada canonical dan Open Graph serta menghasilkan sitemap.xml dan baris Sitemap di
+// robots.txt. Tanpa PDK_SITE_URL, tag yang memerlukan alamat absolut dibuang (alamat relatif tidak sah untuk itu).
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, extname } from "node:path";
 import { iconMarkup } from "../assets/js/icons.js";
 
 const OUT = "dist";
 const SKIP = new Set(["node_modules", OUT, ".git", ".github", "scripts", "tests", "partials", ".tmp"]);
+// Berkas di assets/ yang hanya bahan sumber: sumber CSS (dibangun terpisah) dan logo asli 1 MB (turunannya dibuat oleh
+// scripts/make-logo.mjs).
+const UNPUBLISHED = new Set(["assets/css/input.css", "assets/img/ZafranOS-logo3.png"]);
 
 let origin = (process.env.PDK_API_ORIGIN || "").trim().replace(/\/+$/, "");
 if (!origin) {
@@ -38,10 +46,30 @@ if (!/^https?:\/\/[^\s/]+$/.test(origin)) {
   process.exit(1);
 }
 
+let site = (process.env.PDK_SITE_URL || "").trim().replace(/\/+$/, "");
+if (site && !/^https?:\/\/[^\s/]+$/.test(site)) {
+  console.error(`PDK_SITE_URL harus berupa origin tanpa path, bukan: ${site}`);
+  process.exit(1);
+}
+// Situs di domain kustom dilayani dari akar (base kosong). Alamat situs berhost kustom bersama base path berarti
+// salah konfigurasi (mis. PAGES_BASE_PATH=root terlupa): canonical dan sitemap menunjuk /nama-repo/ yang 404 di
+// domain itu, jadi build digagalkan alih-alih menerbitkan alamat yang salah.
+if (site && base && !/\.github\.io$/i.test(new URL(site).hostname)) {
+  console.error(`PDK_SITE_URL (${site}) berhost kustom tetapi PDK_BASE_PATH="${base}" tidak kosong. Domain kustom dilayani dari akar: kosongkan base path (di CI, variabel repo PAGES_BASE_PATH=root).`);
+  process.exit(1);
+}
+const siteRoot = site ? site + base : ""; // alamat akar aplikasi (situs proyek memuat base path)
+const year = String(new Date().getFullYear());
+
 // Bagian <head> bersama (CSP, tema, CSS) disisipkan pada penanda di tiap halaman,
-// supaya CSP hanya ditulis di satu tempat.
-const HEAD_MARKER = "<!--@head-->";
+// supaya CSP hanya ditulis di satu tempat. Satu-satunya perbedaan antarvarian adalah meta robots.
 const headPartial = readFileSync("partials/head.html", "utf8").trimEnd();
+const HEADS = {
+  "<!--@head-->": headPartial.replaceAll("__ROBOTS__", "noindex"),
+  "<!--@head:index-->": headPartial.replaceAll("__ROBOTS__", "index, follow, max-image-preview:large"),
+};
+// Tanpa alamat situs: tag beralamat absolut dibuang beserta keterangan gambarnya (og:image:*) agar tidak yatim.
+const NEEDS_SITE = /^[ \t]*<(?:meta|link)\b[^>]*(?:__SITE_URL__|property="og:image:|name="twitter:card")[^>]*>[ \t]*\r?\n?/gm;
 
 // <!--@include nama--> disisipi isi partials/nama.html (logo, tombol tema, dsb.), sehingga bagian yang
 // dipakai banyak halaman ditulis sekali. Partial boleh memuat partial lain (maksimal tiga lapis).
@@ -69,7 +97,7 @@ function walk(dir, rel = "") {
     const r = rel ? `${rel}/${name}` : name;
     if (statSync(path).isDirectory()) {
       walk(path, r);
-    } else if (r === "assets/css/input.css" || name === ".DS_Store") {
+    } else if (UNPUBLISHED.has(r) || name === ".DS_Store") {
       continue;
     } else if (r.endsWith(".html") || r.startsWith("assets/")) {
       const dest = join(OUT, r);
@@ -77,8 +105,10 @@ function walk(dir, rel = "") {
       if ([".html", ".js"].includes(extname(name))) {
         let text = readFileSync(path, "utf8");
         if (name.endsWith(".html")) {
-          text = expandIncludes(text.replaceAll(HEAD_MARKER, headPartial));
+          for (const [marker, head] of Object.entries(HEADS)) text = text.replaceAll(marker, head);
+          text = expandIncludes(text);
           if (base) text = text.replace(/(\s(?:href|src))="\/(?!\/)/g, `$1="${base}/`);
+          text = (siteRoot ? text.replaceAll("__SITE_URL__", siteRoot) : text.replace(NEEDS_SITE, "")).replaceAll("__YEAR__", year);
         }
         writeFileSync(dest, text.replaceAll("__API_ORIGIN__", origin).replaceAll("__BASE_PATH__", base));
       } else {
@@ -89,4 +119,13 @@ function walk(dir, rel = "") {
 }
 walk(".");
 for (const f of ["CNAME", ".nojekyll"]) if (existsSync(f)) cpSync(f, join(OUT, f));
-console.log(`dist/ disusun; API origin = ${origin}; base path = "${base}"`);
+
+// robots.txt mengizinkan semuanya: halaman non-landing dijaga noindex, dan noindex hanya terbaca bila halamannya
+// boleh diambil perayap (memblokirnya di sini justru dapat membuat alamatnya tetap tampil tanpa isi).
+writeFileSync(join(OUT, "robots.txt"), `User-agent: *\nAllow: /\n${siteRoot ? `\nSitemap: ${siteRoot}/sitemap.xml\n` : ""}`);
+if (siteRoot) {
+  const lastmod = new Date().toISOString().slice(0, 10);
+  writeFileSync(join(OUT, "sitemap.xml"),
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>${siteRoot}/</loc><lastmod>${lastmod}</lastmod></url>\n</urlset>\n`);
+}
+console.log(`dist/ disusun; API origin = ${origin}; base path = "${base}"; situs = ${siteRoot || "(tanpa PDK_SITE_URL)"}`);

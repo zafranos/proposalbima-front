@@ -50,6 +50,10 @@ export const ICONS = {
   "trending-up": ["M16 7h6v6", "m22 7-8.5 8.5-5-5L2 17"],
   "panel-left": [{ rect: [3, 3, 18, 18, 2] }, "M9 3v18"],
   play: ["M6 3 20 12 6 21Z"],
+  globe: [{ circle: [12, 12, 10] }, "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20", "M2 12h20"],
+  "chevron-up": ["m18 15-6-6-6 6"],
+  trash: ["M3 6h18", "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6", "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"],
+  "rotate-ccw": ["M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", "M3 3v5h5"],
 };
 
 const SVG_ATTRS = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';

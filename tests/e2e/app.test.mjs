@@ -783,9 +783,246 @@ test("admin: progres per skema memuat corong dan peserta sesuai API", async () =
   await context.close();
 });
 
+// ── Landing: mesin pencari, footer, dan penyuntingan oleh admin ──
+const lf = (page, path) => page.locator("#f-" + path.replace(/\./g, "-"));
+const landingH1 = (page) => page.locator("main h1").first();
+const toastText = (page) => page.locator("#toast-host").textContent();
+const publicLanding = async () => (await api("/api/landing")).data;
+
+test("landing boleh diindeks dan halaman lain tidak; footer lengkap dengan kredit; tanpa kata gratis", async () => {
+  const { context, page } = await newPage();
+  await page.goto(WEB + "/");
+  await page.locator("#skema-cards article").first().waitFor();
+  assert.match(await page.locator('meta[name="robots"]').getAttribute("content"), /^index, follow/);
+  assert.equal(await page.locator('link[rel="canonical"]').count(), 0, "tanpa PDK_SITE_URL canonical tidak dibuat (alamat relatif tidak sah)");
+
+  const footer = page.getByRole("contentinfo");
+  assert.equal(await footer.getByRole("link", { name: "mubaroqadb", exact: true }).getAttribute("href"), "https://github.com/mubaroqadb");
+  assert.equal(await footer.getByRole("link", { name: "Akademi Digital Bandung", exact: true }).getAttribute("href"), "https://digitalbdg.ac.id");
+  assert.match((await footer.textContent()).replace(/\s+/g, " "), /Dikembangkan oleh mubaroqadb, Akademi Digital Bandung/);
+  for (const [name, href] of [["Cara kerja", "#cara"], ["Alur penyusunan", "#alur"], ["Skema", "#skema"], ["Tanya jawab", "#faq"], ["Masuk", BASE + "/login/"], ["Daftar", BASE + "/register/"]]) {
+    assert.equal(await footer.getByRole("link", { name, exact: true }).getAttribute("href"), href, `tautan footer ${name}`);
+  }
+  assert.match(await footer.textContent(), /Acuan aturan: .+/);
+
+  // logo ZafranOS: ikon merek termuat (bukan gambar rusak) di bilah atas dan footer; ikon tab ada; sumber 1 MB tidak terbit
+  const logos = await page.locator("img.brand-mark").evaluateAll((imgs) => imgs.map((i) => i.complete && i.naturalWidth > 0));
+  assert.deepEqual(logos, [true, true], "ikon merek termuat di bilah atas dan footer");
+  assert.equal(await page.locator('link[rel="icon"]').getAttribute("href"), BASE + "/assets/img/favicon.png");
+  for (const f of ["favicon.png", "apple-touch-icon.png", "logo-mark.png", "og.png"]) {
+    const r = await fetch(`${WEB}/assets/img/${f}`);
+    assert.equal(r.status, 200, f);
+    assert.equal(r.headers.get("content-type"), "image/png", f);
+  }
+  assert.equal((await fetch(`${WEB}/assets/img/ZafranOS-logo3.png`)).status, 404, "logo sumber 1 MB tidak diterbitkan");
+  assert.ok([400, 404].includes((await fetch(`${WEB}/%`)).status), "alamat berkode persen rusak ditolak, bukan mematikan server");
+  assert.equal((await fetch(`${WEB}/`)).status, 200, "server tetap hidup sesudahnya");
+
+  assert.doesNotMatch(await page.evaluate(() => document.body.innerText), /gratis|berbayar/i, "tidak ada konteks gratis di landing");
+  await noLeakyText(page, "landing");
+
+  // halaman lain tetap noindex; robots.txt tidak memblokir apa pun (noindex hanya terbaca bila halaman boleh diambil)
+  for (const path of ["/login/", "/register/", "/forgot-password/"]) {
+    await page.goto(WEB + path);
+    assert.equal(await page.locator('meta[name="robots"]').getAttribute("content"), "noindex", path);
+  }
+  const robots = await (await fetch(WEB + "/robots.txt")).text();
+  assert.match(robots, /^User-agent: \*\nAllow: \/\n/);
+  assert.doesNotMatch(robots, /Disallow/i);
+  noIssues();
+  await context.close();
+});
+
+test("admin: landing disunting, disimpan, diurutkan, konflik ditolak, riwayat dipulihkan, dikembalikan ke bawaan", async () => {
+  const adminT = await adminToken();
+  await api("/admin/landing", { method: "DELETE", token: adminT }); // mulai dari teks bawaan
+
+  // Hanya admin yang boleh menyunting; publik hanya membaca.
+  const peserta = await login(userA.email, userA.password);
+  const body = { content: { fields: { "hero.title": "x" } } };
+  assert.equal((await api("/admin/landing", { method: "POST", body })).status, 401);
+  assert.equal((await api("/admin/landing", { method: "POST", body, token: peserta.token })).status, 403);
+  assert.equal((await api("/admin/landing", { method: "DELETE", token: peserta.token })).status, 403);
+  assert.equal((await publicLanding()).content, null, "belum disunting: content null");
+
+  const { context, page } = await authed(ADMIN);
+  page.on("dialog", (d) => d.accept()); // penjaga perubahan belum disimpan diuji terpisah di bawah
+  await page.goto(WEB + "/admin/landing/");
+  await adminReady(page);
+  assert.equal((await page.locator('#admin-menu a[aria-current="page"]').textContent()).trim(), "Landing");
+  assert.equal(await page.locator("#admin-menu img.brand-mark").evaluate((i) => i.complete && i.naturalWidth > 0), true, "logo di panel admin (dibangun JS, awalan situs) termuat");
+  assert.equal(await lf(page, "hero.title").inputValue(), "Susun proposal DPPM,", "formulir memuat teks bawaan dari landing");
+  assert.match(await lf(page, "hero.lead").inputValue(), /^Panduan mandiri/);
+  assert.equal(await page.locator('[role="group"][aria-label="Butir 1"]').count(), 1);
+  const save = page.getByRole("button", { name: "Simpan perubahan" });
+  assert.equal(await save.isDisabled(), true, "tanpa perubahan tombol simpan nonaktif");
+  assert.match(await page.getByText(/perubahan sudah tersimpan/i).textContent(), /Semua perubahan sudah tersimpan/);
+  await shot(page, "29-admin-landing-light");
+
+  // 1. ubah satu bidang; yang dikirim hanya yang berbeda dari bawaan
+  await lf(page, "hero.title").fill("Judul uji e2e");
+  await page.getByText("Ada perubahan yang belum disimpan.").waitFor();
+  assert.equal(await save.isEnabled(), true);
+  await save.click();
+  await until(async () => /Landing disimpan/.test(await toastText(page)), "toast simpan");
+  let pub = await publicLanding();
+  assert.equal(pub.version, 1);
+  assert.deepEqual(pub.content.fields, { "hero.title": "Judul uji e2e" }, "hanya bidang yang berubah yang tersimpan");
+  assert.deepEqual(pub.content.lists, {});
+  assert.equal(await save.isDisabled(), true, "setelah simpan formulir bersih");
+  await until(async () => (await page.getByRole("button", { name: "Kembalikan semua" }).isEnabled()), "kartu kembalikan-ke-bawaan menyegar tanpa muat ulang");
+
+  // 2. validasi sisi klien, lalu tambah pertanyaan dan teks berisi tanda kurung sudut
+  const faqAdd = page.getByRole("button", { name: "Tambah pertanyaan" });
+  await faqAdd.click();
+  assert.equal(await page.evaluate(() => document.activeElement.id), "l-faq-items-6-q", "fokus pindah ke butir baru");
+  await page.locator("#l-faq-items-6-q").fill("Pertanyaan uji e2e?");
+  await save.click();
+  assert.match(await page.locator('[role="alert"]:not(.hidden)').textContent(), /Jawaban wajib diisi/);
+  assert.equal((await publicLanding()).version, 1, "yang ditolak tidak menyimpan apa pun");
+  await page.locator("#l-faq-items-6-a").fill("Jawaban uji e2e.");
+  const xss = "<img src=x onerror=alert(1)> judul ajakan";
+  await lf(page, "cta.title").fill(xss);
+  await save.click();
+  await until(async () => (await publicLanding()).version === 2, "versi 2 tersimpan");
+  await page.getByRole("row", { name: /^Versi 1 / }).waitFor(); // riwayat menyegar tanpa muat ulang
+
+  // 3. urutan: naikkan butir baru satu langkah; fokus mengikuti tombol yang sama
+  await page.getByRole("button", { name: "Naikkan pertanyaan 7" }).click();
+  assert.equal(await page.evaluate(() => document.activeElement.getAttribute("aria-label")), "Naikkan pertanyaan 6");
+  await save.click();
+  await until(async () => (await publicLanding()).version === 3, "versi 3 tersimpan");
+
+  // 4. landing publik (konteks baru, tanpa cache) menampilkan semuanya sebagai TEKS
+  const pub1 = await newPage();
+  await pub1.page.goto(WEB + "/");
+  await until(async () => /Judul uji e2e/.test(await landingH1(pub1.page).textContent()), "judul baru tampil");
+  assert.match((await landingH1(pub1.page).textContent()).replace(/\s+/g, " "), /^Judul uji e2e fase demi fase$/);
+  const faqs = await pub1.page.locator("#faq summary").allTextContents();
+  assert.equal(faqs.length, 7);
+  assert.equal(faqs[5].trim(), "Pertanyaan uji e2e?", "butir yang dinaikkan menempati urutan keenam");
+  assert.equal(await pub1.page.locator("#faq details").nth(5).locator("p").textContent(), "Jawaban uji e2e.");
+  assert.equal(await pub1.page.locator("section h2", { hasText: "judul ajakan" }).textContent(), xss, "tanda kurung sudut tampil sebagai teks");
+  assert.equal(await pub1.page.locator("section h2 img").count(), 0, "tidak ada elemen yang disisipkan dari teks");
+  assert.equal(await pub1.page.locator("#skema-cards article").count() > 0, true, "kartu skema dari API tetap tampil");
+  await noLeakyText(pub1.page, "landing tersunting");
+  noIssues();
+  await pub1.context.close();
+
+  // 5. dua penyunting: yang membuka versi lama ditolak dan tidak menimpa
+  const other = await authed(ADMIN);
+  other.page.on("dialog", (d) => d.accept());
+  await other.page.goto(WEB + "/admin/landing/");
+  await adminReady(other.page);
+  await lf(page, "hero.title").fill("Judul A");
+  await save.click();
+  await until(async () => (await publicLanding()).version === 4, "versi 4 tersimpan");
+  await lf(other.page, "hero.title").fill("Judul B");
+  await other.page.getByRole("button", { name: "Simpan perubahan" }).click();
+  await until(async () => /diubah oleh orang lain/.test(await other.page.locator('[role="alert"]:not(.hidden)').textContent()), "konflik ditolak");
+  assert.match(await other.page.locator('[role="alert"]:not(.hidden)').textContent(), /Isian Anda masih ada/);
+  assert.equal(await lf(other.page, "hero.title").inputValue(), "Judul B", "isian yang ditolak tidak dibuang");
+  assert.equal((await publicLanding()).content.fields["hero.title"], "Judul A", "konflik tidak menimpa");
+  await other.context.close();
+
+  // 6. riwayat dan pemulihan: versi 1 hanya memuat judul uji (riwayat sudah disegarkan oleh simpan, tanpa muat ulang)
+  const row1 = page.getByRole("row", { name: /^Versi 1 / });
+  await row1.waitFor();
+  assert.equal(await page.getByRole("row").count() - 1, 3, "riwayat memuat versi yang sudah digantikan (1 sampai 3); versi 4 masih aktif");
+  await row1.getByRole("button", { name: "Pulihkan versi 1" }).click();
+  const dlg = page.locator("dialog[open]");
+  await dlg.getByRole("button", { name: "Pulihkan" }).click();
+  await dlg.waitFor({ state: "detached" });
+  await until(async () => (await publicLanding()).version === 5, "versi 5 (hasil pemulihan)");
+  pub = await publicLanding();
+  assert.deepEqual(pub.content.fields, { "hero.title": "Judul uji e2e" });
+  assert.deepEqual(pub.content.lists, {});
+  await until(async () => (await lf(page, "hero.title").inputValue()) === "Judul uji e2e", "formulir dimuat ulang setelah pemulihan");
+
+  // 7. kembali ke bawaan lewat dialog bahaya
+  await page.getByRole("button", { name: "Kembalikan semua" }).click();
+  await page.locator("dialog[open]").getByRole("button", { name: "Kembalikan", exact: true }).click();
+  await until(async () => (await publicLanding()).content === null, "kembali ke bawaan");
+  await until(async () => (await lf(page, "hero.title").inputValue()) === "Susun proposal DPPM,", "formulir kembali ke bawaan");
+  assert.equal(await page.getByRole("button", { name: "Kembalikan semua" }).isDisabled(), true);
+  const pub2 = await newPage();
+  await pub2.page.goto(WEB + "/");
+  await until(async () => /^Susun proposal DPPM, fase demi fase$/.test((await landingH1(pub2.page).textContent()).replace(/\s+/g, " ")), "landing kembali ke bawaan");
+  assert.equal(await pub2.page.locator("#faq summary").count(), 6);
+  await pub2.context.close();
+
+  // 8. penjaga: menutup halaman dengan perubahan yang belum disimpan memicu konfirmasi
+  const guard = await authed(ADMIN);
+  await guard.page.goto(WEB + "/admin/landing/");
+  await adminReady(guard.page);
+  await lf(guard.page, "hero.chip").fill("Perubahan yang belum disimpan");
+  let guarded = false;
+  guard.page.on("dialog", async (d) => { guarded = d.type() === "beforeunload"; await d.dismiss(); });
+  await guard.page.close({ runBeforeUnload: true });
+  await until(() => guarded, "penjaga perubahan belum disimpan");
+  await guard.context.close();
+
+  noIssues();
+  await context.close();
+});
+
+test("admin: ketikan saat menyimpan tetap belum tersimpan; konflik mempertahankan isian dan dapat ditimpa dengan sadar", async () => {
+  const adminT = await adminToken();
+  await api("/admin/landing", { method: "DELETE", token: adminT });
+  const ver = async () => (await publicLanding()).version;
+  const { context, page } = await authed(ADMIN);
+  page.on("dialog", (d) => d.accept());
+  await page.goto(WEB + "/admin/landing/");
+  await adminReady(page);
+  const save = page.getByRole("button", { name: "Simpan perubahan" });
+
+  // Permintaan simpan ditunda supaya ada waktu mengetik selagi ia berjalan.
+  await page.route(`${API}/admin/landing`, async (route) => {
+    if (route.request().method() === "POST") await new Promise((r) => setTimeout(r, 800));
+    await route.continue();
+  });
+  await lf(page, "hero.chip").fill("Chip terkirim");
+  await save.click();
+  await lf(page, "hero.lead").fill("Lead diketik saat menyimpan");
+  await until(async () => /Landing disimpan/.test(await toastText(page)), "toast simpan");
+  assert.deepEqual((await publicLanding()).content.fields, { "hero.chip": "Chip terkirim" }, "hanya yang sudah diketik sebelum kirim yang terkirim");
+  await page.getByText("Ada perubahan yang belum disimpan.").waitFor();
+  assert.equal(await save.isEnabled(), true, "ketikan susulan belum tersimpan, tombol simpan tetap aktif");
+  await page.unroute(`${API}/admin/landing`);
+  await save.click();
+  await until(async () => (await publicLanding()).content.fields["hero.lead"] === "Lead diketik saat menyimpan", "ketikan susulan tersimpan");
+  await page.getByText("Semua perubahan sudah tersimpan.").waitFor();
+
+  // Konflik: isian yang ditolak dipertahankan; menekan simpan lagi menimpa dengan sadar, versi yang tertimpa ada di riwayat.
+  const other = await authed(ADMIN);
+  other.page.on("dialog", (d) => d.accept());
+  await other.page.goto(WEB + "/admin/landing/");
+  await adminReady(other.page);
+  const v0 = await ver();
+  await lf(page, "hero.title").fill("Judul A");
+  await save.click();
+  await until(async () => (await ver()) === v0 + 1, "judul A tersimpan");
+  await lf(other.page, "hero.title").fill("Judul B");
+  const otherSave = other.page.getByRole("button", { name: "Simpan perubahan" });
+  await otherSave.click();
+  await until(async () => /diubah oleh orang lain/.test(await other.page.locator('[role="alert"]:not(.hidden)').textContent()), "konflik ditolak");
+  assert.equal(await lf(other.page, "hero.title").inputValue(), "Judul B");
+  assert.equal(await ver(), v0 + 1, "konflik tidak menyimpan apa pun");
+  await otherSave.click();
+  await until(async () => (await ver()) === v0 + 2, "penimpaan sadar tersimpan");
+  assert.equal((await publicLanding()).content.fields["hero.title"], "Judul B");
+  const hist = (await api("/admin/landing/history", { token: adminT })).data.riwayat;
+  assert.ok(hist.some((r) => r.version === v0 + 1), "versi yang tertimpa (Judul A) tersimpan di riwayat");
+  await other.context.close();
+
+  await api("/admin/landing", { method: "DELETE", token: adminT }); // kembali ke bawaan untuk uji berikutnya
+  noIssues();
+  await context.close();
+});
+
 test("admin di ponsel: menu dapat dibuka dan halaman tidak bergulir ke samping", async () => {
   const { context, page } = await authed(ADMIN, { viewport: { width: 375, height: 800 } });
-  for (const p of ["/admin/dashboard/", "/admin/users/", "/admin/enrollments/?status=all", "/admin/invite-codes/", "/admin/progress/"]) {
+  for (const p of ["/admin/dashboard/", "/admin/users/", "/admin/enrollments/?status=all", "/admin/invite-codes/", "/admin/progress/", "/admin/landing/"]) {
     await page.goto(WEB + p);
     await adminReady(page);
     await noPageOverflow(page, p);
@@ -832,13 +1069,14 @@ for (const scheme of ["light", "dark"]) {
     }
     // Halaman admin (sebagai admin), termasuk dialog yang sedang terbuka.
     const adminId = (await login(ADMIN.email, ADMIN.password)).user.id;
-    const adminPages = ["/admin/dashboard/", "/admin/users/", `/admin/users-detail/?id=${adminId}`, "/admin/enrollments/?status=all", "/admin/invite-codes/", "/admin/progress/"];
+    const adminPages = ["/admin/dashboard/", "/admin/users/", `/admin/users-detail/?id=${adminId}`, "/admin/enrollments/?status=all", "/admin/invite-codes/", "/admin/progress/", "/admin/landing/"];
     for (const path of adminPages) {
       const { context, page } = await authed(ADMIN, { colorScheme: scheme });
       await page.goto(WEB + path);
       await adminReady(page);
       if (path === "/admin/dashboard/") { await until(() => canvasDrawn(page, 0), "grafik tergambar"); await shot(page, `27-admin-dasbor-${scheme}`); }
       if (path.startsWith("/admin/users-detail")) await page.getByRole("button", { name: "Nonaktifkan akun" }).waitFor();
+      if (path === "/admin/landing/") await shot(page, `30-admin-landing-${scheme}`);
       const analyze = async (label) => {
         const res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
         for (const v of res.violations) problems.push(`${label} [${v.impact}] ${v.id}: ${v.help} -> ${v.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(" | ")}`);

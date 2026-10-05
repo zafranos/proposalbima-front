@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<!-- Sumber gambar pratinjau tautan (assets/img/og.png), dirender oleh scripts/make-og.mjs. Bukan bagian situs. -->
+<style>
+  @font-face { font-family: "Newsreader"; font-weight: 200 800; src: url(__NEWSREADER__) format("woff2"); }
+  @font-face { font-family: "Inter"; font-weight: 100 900; src: url(__INTER__) format("woff2"); }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    width: 1200px; height: 630px; overflow: hidden; position: relative; color: #fff;
+    font-family: "Inter", sans-serif;
+    background: radial-gradient(90% 120% at 0% 0%, oklch(35% 0.075 228), oklch(29% 0.057 229) 55%, oklch(22% 0.042 230));
+  }
+  .dots {
+    position: absolute; inset: 0; opacity: 0.16;
+    background-image: radial-gradient(#fff 1px, transparent 1.2px); background-size: 26px 26px;
+    -webkit-mask-image: radial-gradient(70% 80% at 100% 0%, #000, transparent); mask-image: radial-gradient(70% 80% at 100% 0%, #000, transparent);
+  }
+  .brand { position: absolute; left: 80px; top: 64px; display: flex; align-items: center; gap: 16px; font-size: 30px; font-weight: 650; letter-spacing: -0.01em; }
+  .brand img { width: 60px; height: 60px; border-radius: 15px; }
+  .brand b { color: oklch(80.5% 0.08 222); font-weight: 650; }
+  .copy { position: absolute; left: 80px; top: 168px; width: 1040px; }
+  h1 { font-family: "Newsreader", serif; font-weight: 500; font-size: 90px; line-height: 1.08; letter-spacing: -0.02em; }
+  h1 span {
+    background-image: linear-gradient(transparent 60%, oklch(89% 0.16 96 / 0.4) 60% 92%, transparent 92%);
+    padding-inline: 0.08em 0.04em;
+  }
+  p { margin-top: 44px; width: 900px; font-size: 32px; line-height: 1.45; color: rgb(255 255 255 / 0.78); }
+</style>
+</head>
+<body>
+  <div class="dots"></div>
+  <div class="brand">
+    <img src="__LOGO__" alt="">
+    <div>Proposal <b>DIKTI</b></div>
+  </div>
+  <div class="copy">
+    <h1>Susun proposal DPPM,<br><span>fase demi fase</span></h1>
+    <p>Panduan mandiri untuk skema Dasar dan Terapan, dengan kartu salin-tempel untuk asisten AI pilihan Anda.</p>
+  </div>
+</body>
+</html>

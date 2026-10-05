@@ -13,6 +13,7 @@ const ITEMS = [
   ["pendaftaran", "/admin/enrollments/", "Pendaftaran", "user-check"],
   ["kode", "/admin/invite-codes/", "Kode undangan", "key"],
   ["progres", "/admin/progress/", "Progres", "bar-chart"],
+  ["landing", "/admin/landing/", "Landing", "globe"],
 ];
 
 export function renderAdminNav(active) {

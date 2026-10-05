@@ -20,7 +20,7 @@ jobs:
     if: ${{ vars.API_BASE_URL == '' }}
     runs-on: ubuntu-latest
     steps:
-      - run: echo "::notice::Deploy dilewati: isi variabel repo API_BASE_URL (alamat API backend)."
+      - run: echo "::notice::Deploy dilewati karena variabel repo API_BASE_URL (alamat API backend) belum diisi."
 
   deploy:
     if: ${{ vars.API_BASE_URL != '' }}

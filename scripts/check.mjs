@@ -55,6 +55,11 @@ for (const f of htmlFiles) {
     } else if (/frame-src|thunderbolt/i.test(policy)) {
       problems.push(`${f}: CSP memuat kelonggaran asisten pihak ketiga di halaman yang tidak boleh`);
     }
+    // Meta color-scheme: tidak boleh ada di landing saat asisten aktif (membuat kotak putih buram di mode gelap),
+    // dan wajib ada di semua halaman lain.
+    const hasScheme = /<meta name="color-scheme"/.test(html);
+    if (f === LANDING && ASSISTANT && hasScheme) problems.push(`${f}: meta color-scheme harus dibuang saat asisten aktif`);
+    if (!(f === LANDING && ASSISTANT) && !hasScheme) problems.push(`${f}: tanpa meta color-scheme`);
     if (/unsafe-inline|unsafe-eval/.test(policy)) problems.push(`${f}: CSP memuat unsafe-*`);
     if (!/script-src 'self'/.test(policy)) problems.push(`${f}: CSP tanpa script-src 'self'`);
   }

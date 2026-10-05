@@ -1024,6 +1024,39 @@ test("admin: ketikan saat menyimpan tetap belum tersimpan; konflik mempertahanka
   await context.close();
 });
 
+test("landing dan editor admin: tampilan terang, gelap, dan ponsel tidak melebar atau memuat teks bocor", async () => {
+  const sections = ["#cara", "#alur", "#skema", "#fitur", "#faq"];
+  for (const [label, opts] of [["terang", { viewport: { width: 1280, height: 900 } }], ["gelap", { viewport: { width: 1280, height: 900 }, colorScheme: "dark" }], ["ponsel", { viewport: { width: 390, height: 800 } }]]) {
+    const { context, page } = await newPage(opts);
+    await page.goto(WEB + "/");
+    await page.locator("#skema-cards article").first().waitFor();
+    await page.waitForLoadState("networkidle");
+    await shot(page, `31-landing-atas-${label}`);
+    for (const id of sections) {
+      await page.locator(id).scrollIntoViewIfNeeded();
+      await shot(page, `32-landing${id.slice(1)}-${label}`);
+    }
+    await page.locator("footer").scrollIntoViewIfNeeded();
+    await shot(page, `33-landing-footer-${label}`);
+    await noPageOverflow(page, `landing ${label}`);
+    await noLeakyText(page, `landing ${label}`);
+    await context.close();
+  }
+  // editor admin di ponsel: bagian atas dan daftar tanya jawab
+  const { context, page } = await authed(ADMIN, { viewport: { width: 390, height: 800 } });
+  await page.goto(WEB + "/admin/landing/");
+  await adminReady(page);
+  await shot(page, "34-editor-ponsel-atas");
+  await page.locator("#sec-faq").scrollIntoViewIfNeeded();
+  await shot(page, "35-editor-ponsel-faq");
+  await page.locator("#h-riwayat").scrollIntoViewIfNeeded();
+  await shot(page, "36-editor-ponsel-riwayat");
+  await noPageOverflow(page, "editor admin di ponsel");
+  await noLeakyText(page, "editor admin di ponsel");
+  await context.close();
+  noIssues();
+});
+
 // ── Asisten obrolan pihak ketiga: berjalan di origin yang sama dengan token login, jadi dibatasi keras ──
 const cspOf = (page) => page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute("content");
 const stubbed = (page) => page.evaluate(() => window.__assistantStub || null);
@@ -1039,6 +1072,8 @@ test("asisten obrolan: hanya di landing untuk pengunjung yang belum masuk; kelon
   assert.match(csp, /frame-src https:\/\/www\.thunderbolt\.com;/);
   assert.match(csp, /connect-src 'self' https:\/\/api\.thunderbolt\.com /);
   assert.match(csp, /style-src 'self' 'unsafe-inline';/);
+  // tanpa meta color-scheme di landing (iframe widget memakai color-scheme: normal; dengan meta itu muncul kotak putih di mode gelap)
+  assert.equal(await anon.page.locator('meta[name="color-scheme"]').count(), 0, "landing dengan asisten tanpa meta color-scheme");
   noIssues();
   await anon.context.close();
 
@@ -1064,6 +1099,7 @@ test("asisten obrolan: hanya di landing untuk pengunjung yang belum masuk; kelon
     await page.goto(WEB + path);
     await page.waitForLoadState("networkidle");
     assert.doesNotMatch(await cspOf(page), /thunderbolt|frame-src|unsafe-inline/, `CSP ketat di halaman ${label}`);
+    assert.equal(await page.locator('meta[name="color-scheme"]').count(), 1, `meta color-scheme tetap ada di halaman ${label}`);
     assert.equal(touched, false, `tidak ada permintaan ke vendor di halaman ${label}`);
     assert.equal(await stubbed(page), null, `skrip asisten tidak dijalankan di halaman ${label}`);
     await context.close();
@@ -1083,6 +1119,7 @@ test("build tanpa asisten: CSP ketat di semua halaman; vendor tak dikenal dan ke
   for (const f of ["index.html", "login/index.html", "admin/landing/index.html"]) {
     const policy = readFileSync(resolve(out, f), "utf8").match(/Content-Security-Policy" content="([^"]*)"/)[1];
     assert.doesNotMatch(policy, /thunderbolt|frame-src|unsafe-inline/, `CSP ketat tanpa asisten: ${f}`);
+    assert.match(readFileSync(resolve(out, f), "utf8"), /<meta name="color-scheme" content="light dark">/, `meta color-scheme ada tanpa asisten: ${f}`);
   }
   assert.match(readFileSync(resolve(out, "assets/js/config.js"), "utf8"), /assistantSrc: ""/);
 

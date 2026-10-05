@@ -108,10 +108,13 @@ function textControl({ id, label, max, rows, value, onInput, hintExtra }) {
   control.id = id;
   control.value = value;
   const count = h("span", { text: "" });
-  const sync = () => { count.textContent = `${[...control.value].length}/${max}`; if (hintExtra) hintExtra.sync(control); };
+  // Kolom banyak baris tumbuh mengikuti isinya (tanpa gulir di dalam kolom); tinggi lewat CSSOM, bukan atribut style (CSP).
+  const grow = () => { if (!multi) return; control.style.height = "auto"; control.style.height = control.scrollHeight + 2 + "px"; };
+  const sync = () => { count.textContent = `${[...control.value].length}/${max}`; if (hintExtra) hintExtra.sync(control); grow(); };
   control.setAttribute("aria-describedby", id + "-hint");
   control.addEventListener("input", () => { onInput(control.value); sync(); touch(); });
   sync();
+  if (multi) { control._grow = grow; requestAnimationFrame(grow); }
   return {
     control, sync,
     el: h("div", { class: multi || max > 90 ? "sm:col-span-2" : "" },
@@ -213,11 +216,12 @@ function sectionCard(s) {
 
 // ── Riwayat dan pengembalian ──
 function historyCard(riwayat) {
+  const nowrap = (text) => h("span", { class: "whitespace-nowrap", text });
   const rows = riwayat.map((r) => [
-    `Versi ${r.version}`,
+    nowrap(`Versi ${r.version}`),
     r.updated_by || "—",
-    formatDateTime(r.updated_at) || "—",
-    formatDateTime(r.archived_at) || "—",
+    nowrap(formatDateTime(r.updated_at) || "—"),
+    nowrap(formatDateTime(r.archived_at) || "—"),
     `${r.jumlah_bidang} bidang, ${r.jumlah_daftar} daftar`,
     h("button", { type: "button", class: BTN, on: { click: () => restore(r) }, "aria-label": `Pulihkan versi ${r.version}`, text: "Pulihkan" }),
   ]);
@@ -346,6 +350,8 @@ async function load() {
 }
 
 saveBtn.addEventListener("click", save);
+// Lebar berubah (putar ponsel, ubah ukuran jendela) mengubah tinggi isi kolom banyak baris; satu pendengar untuk semuanya.
+window.addEventListener("resize", () => editor.querySelectorAll("textarea").forEach((t) => t._grow && t._grow()));
 window.addEventListener("beforeunload", (e) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
 
 if (await startAdmin("landing")) {

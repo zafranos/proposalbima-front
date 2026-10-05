@@ -16,7 +16,7 @@ export const SECTIONS = [
     fields: [
       { path: "hero.chip", label: "Label di atas judul", max: 80 },
       { path: "hero.title", label: "Judul", max: 80 },
-      { path: "hero.highlight", label: "Judul, bagian yang distabilo", max: 40 },
+      { path: "hero.highlight", label: "Judul, bagian yang distabilo", max: 14 },
       { path: "hero.lead", label: "Paragraf pembuka", max: 320, rows: 3 },
       { path: "hero.cta_primary", label: "Tombol utama", max: 30 },
       { path: "hero.cta_secondary", label: "Tombol kedua", max: 30 },
@@ -80,7 +80,7 @@ export const SECTIONS = [
       {
         path: "faq.items", label: "Pertanyaan", itemLabel: "Pertanyaan", max: 20,
         keys: [
-          { key: "q", label: "Pertanyaan", max: 140 },
+          { key: "q", label: "Pertanyaan", max: 140, rows: 2 },
           { key: "a", label: "Jawaban", max: 600, rows: 4 },
         ],
       },

@@ -86,9 +86,16 @@ const year = String(new Date().getFullYear());
 // Bagian <head> bersama (CSP, tema, CSS) disisipkan pada penanda di tiap halaman,
 // supaya CSP hanya ditulis di satu tempat. Satu-satunya perbedaan antarvarian adalah meta robots.
 const headPartial = readFileSync("partials/head.html", "utf8").trimEnd();
-// Kelonggaran CSP untuk asisten, HANYA pada varian landing: skrip dan iframe dari vendor, panggilan API vendor, dan
-// gaya inline (skrip membuat <style> di shadow DOM-nya).
+// Kelonggaran untuk asisten, HANYA pada varian landing: CSP (skrip dan iframe dari vendor, panggilan API vendor, dan
+// gaya inline karena skrip membuat <style> di shadow DOM-nya) dan tanpa <meta name="color-scheme">. Iframe widget
+// memakai `color-scheme: normal`, yang mengikuti skema yang dideklarasikan halaman; dengan meta "light dark" iframe
+// dianggap gelap di OS mode gelap sementara dokumen widget terang, sehingga peramban melapisinya dengan kotak putih
+// buram di pojok kanan bawah. Tanpa meta itu kotak hilang (diuji di Chrome); gaya gelap halaman tetap dari CSS
+// (`html.dark { color-scheme: dark }`).
+const COLOR_SCHEME_META = '<meta name="color-scheme" content="light dark">\n';
 function withAssistant(head) {
+  if (head.split(COLOR_SCHEME_META).length !== 2) throw new Error("partials/head.html harus memuat meta color-scheme tepat sekali");
+  head = head.replace(COLOR_SCHEME_META, "");
   const swap = (from, to) => {
     if (head.split(from).length !== 2) throw new Error(`CSP: "${from}" harus muncul tepat sekali di partials/head.html`);
     head = head.replace(from, to);

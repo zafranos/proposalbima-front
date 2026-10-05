@@ -1,0 +1,43 @@
+name: Deploy ke GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build (CSS, vendor, penggantian origin API)
+        env:
+          # Variabel repo: alamat fungsi GCF, mis. https://...run.app (tanpa path).
+          PDK_API_ORIGIN: ${{ vars.API_BASE_URL }}
+          PDK_REQUIRE_API_ORIGIN: "1"
+        run: npm run build
+      - name: Periksa aturan CSP dan tanpa CDN
+        run: npm run check
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

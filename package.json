@@ -19,6 +19,7 @@
     "@tailwindcss/cli": "^4.3.3",
     "@tailwindcss/typography": "^0.5.20",
     "axe-core": "^4.13.0",
+    "chart.js": "^4.5.1",
     "playwright-core": "^1.63.0",
     "preline": "^5.0.0",
     "tailwindcss": "^4.3.3"

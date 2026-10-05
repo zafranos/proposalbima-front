@@ -8,9 +8,12 @@ function applyTheme(dark) {
   document.documentElement.classList.toggle("dark", dark);
   try { localStorage.setItem(THEME_KEY, dark ? "dark" : "light"); } catch { /* abaikan */ }
   syncToggles();
+  // Grafik (canvas) tidak ikut berganti tema lewat CSS; halaman yang punya grafik mendengarkan ini.
+  document.dispatchEvent(new CustomEvent("pdk:theme"));
 }
 
-function syncToggles() {
+// Dipanggil juga oleh komponen yang membuat tombol tema setelah muat (mis. navigasi admin).
+export function syncToggles() {
   const dark = document.documentElement.classList.contains("dark");
   document.querySelectorAll("[data-theme-toggle]").forEach((b) => {
     b.setAttribute("aria-pressed", String(dark));

@@ -5,6 +5,7 @@ import { dirname } from "node:path";
 
 const COPIES = [
   ["node_modules/preline/dist/preline.js", "dist/assets/js/vendor/preline.js"],
+  ["node_modules/chart.js/dist/chart.umd.min.js", "dist/assets/js/vendor/chart.umd.js"],
   ["node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2", "dist/assets/fonts/inter-latin-wght-normal.woff2"],
   ["node_modules/@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2", "dist/assets/fonts/inter-latin-ext-wght-normal.woff2"],
 ];

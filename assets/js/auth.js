@@ -8,6 +8,20 @@ export function requireLogin() {
   return false;
 }
 
+// Halaman admin: harus masuk dan berperan admin. Cache pengguna bisa basi (peran baru diubah), jadi bila
+// cache bukan admin, peran disegarkan dari /me sebelum menyingkirkan pengguna. Penegakan sebenarnya
+// tetap di backend (RequireAdmin menjawab 403); ini hanya agar bukan-admin tidak melihat kerangka halaman.
+export async function requireAdmin() {
+  if (!requireLogin()) return false;
+  let user = session.getUser();
+  if (!user || user.role !== "admin") {
+    try { user = (await loadMe({ noFollow: true })).user; } catch { user = null; }
+  }
+  if (user && user.role === "admin") return true;
+  api.goReplace("/modul/?slug=beranda");
+  return false;
+}
+
 // Halaman tamu (login, daftar): bila sudah punya token, kirim ke tujuan yang ditentukan backend.
 export async function redirectIfLoggedIn() {
   if (!session.isLoggedIn()) return false;

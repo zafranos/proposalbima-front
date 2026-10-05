@@ -39,6 +39,8 @@ partials/head.html    <head> bersama (CSP, tema, CSS)
 assets/js/            modul bersama (session, api, auth, ui, common)
 assets/js/pages/      satu modul per halaman
 assets/js/reader/     pembaca materi
+assets/js/admin/      komponen panel admin (navigasi, dialog, paginasi, grafik, aksi pendaftaran)
+admin/<halaman>/      panel admin: dashboard, users, users-detail, enrollments, invite-codes, progress
 <halaman>/index.html  halaman situs
 ```
 

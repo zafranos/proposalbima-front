@@ -150,6 +150,12 @@ export function formatDate(iso) {
   return isNaN(d) ? "" : d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 }
 
+export function formatDateTime(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d) ? "" : d.toLocaleString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 export function formatBytes(n) {
   if (n < 1024) return n + " B";
   return (n / 1024).toFixed(n < 10240 ? 1 : 0) + " KB";
@@ -160,6 +166,7 @@ const BADGE = {
   amber: "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100",
   sky: "border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-100",
   teal: "border-teal-300 bg-teal-50 text-teal-900 dark:border-teal-700 dark:bg-teal-950 dark:text-teal-100",
+  red: "border-red-300 bg-red-50 text-red-900 dark:border-red-700 dark:bg-red-950 dark:text-red-100",
   gray: "border-line-3 bg-muted text-foreground",
 };
 export function badge(text, tone = "gray") {

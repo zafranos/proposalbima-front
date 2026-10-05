@@ -18,7 +18,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const DB = process.env.E2E_DB;
 const SRC_MATERI = resolve(here, "../../../gocroot/content/materi");
 const PASSWORD = "kata-sandi-e2e-123";
-// Awalan jalur situs ("" di akar domain, "/proposalbima-frontend" di situs proyek), dari URL dasar uji.
+// Awalan jalur situs ("" di akar domain, "/proposalbima-front" di situs proyek), dari URL dasar uji.
 const BASE = new URL(WEB).pathname.replace(/\/+$/, "");
 const uid = () => randomBytes(3).toString("hex");
 

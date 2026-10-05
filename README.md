@@ -19,7 +19,7 @@ npm run build        # dist/: HTML + assets, CSS Tailwind, vendor Preline dan fo
 npm run check        # aturan CSP dan tanpa CDN pada dist/ (keluar 1 bila melanggar)
 npm run dev          # build lalu sajikan dist/ di http://localhost:5173
 npm run test:e2e     # uji peramban (Chrome terpasang + playwright-core); butuh MongoDB uji, lihat bawah
-npm run test:e2e:subpath   # sama, tetapi situs disajikan di /proposalbima-frontend (mode situs proyek)
+npm run test:e2e:subpath   # sama, tetapi situs disajikan di /proposalbima-front (mode situs proyek)
 ```
 
 Backend lokal untuk `npm run dev`: lihat `../gocroot/README.md`; `ALLOWED_ORIGINS` harus memuat
@@ -60,7 +60,7 @@ assets/js/reader/     enhance (kartu, sorotan penanda, tabel, unduhan), toc (scr
   backend yang sudah dirender dan dilint. Gunakan `mount(el, ...)` dari `ui.js`, bukan `replaceChildren`
   mentah: yang terakhir mengubah argumen `null` menjadi teks "null".
 - **Tanpa CDN.** Font (Inter) dan Preline disalin ke `dist/assets/` oleh `scripts/vendor.mjs`.
-- **Base path.** Repo ini situs proyek GitHub Pages (`https://zafranos.github.io/proposalbima-frontend/`), jadi jalur
+- **Base path.** Repo ini situs proyek GitHub Pages (`https://zafranos.github.io/proposalbima-front/`), jadi jalur
   internal ditulis relatif terhadap akar aplikasi (`/login/`) dan awalan situs ditambahkan di satu tempat: build
   (`PDK_BASE_PATH`) untuk HTML, `withBase()` dan `go()` di `api.js` untuk JS, dan `enhance.js` untuk tautan di
   isi materi. `PDK_BASE_PATH` kosong = akar domain atau domain kustom. `npm run check` (dengan `PDK_BASE_PATH`
@@ -73,8 +73,9 @@ assets/js/reader/     enhance (kartu, sorotan penanda, tabel, unduhan), toc (scr
 ## Deploy
 
 `.github/workflows/pages.yml` membangun, memeriksa, dan mengunggah `dist/`. **Belum pernah dijalankan.** Repo:
-`zafranos/proposalbima-frontend` (publik, masih kosong); remote lokal `origin` sudah diatur, belum ada push.
-Base path dihitung otomatis (`/proposalbima-frontend`; variabel repo `PAGES_BASE_PATH` menimpa, `root` = akar
+`zafranos/proposalbima-front` (**privat untuk sementara**). Pages di paket organisasi `free` butuh repo publik; jadikan publik
+dengan `gh repo edit zafranos/proposalbima-front --visibility public --accept-visibility-change-consequences` saat siap.
+Base path dihitung otomatis (`/proposalbima-front`; variabel repo `PAGES_BASE_PATH` menimpa, `root` = akar
 untuk domain kustom). Dibutuhkan: variabel repo `API_BASE_URL` (alamat fungsi GCF, belum ada; selama kosong deploy
 dilewati, bukan gagal) dan Pages diaktifkan dengan sumber "GitHub Actions". Peringatan npm tentang skrip instal `@parcel/watcher`
 tidak relevan: paket itu hanya dipakai mode `--watch` Tailwind, bukan build.

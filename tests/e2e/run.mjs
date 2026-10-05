@@ -15,7 +15,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const backend = resolve(root, "../gocroot");
 const tmp = resolve(root, ".tmp");
 const API_PORT = 18080, WEB_PORT = 5173;
-const BASE = (process.env.E2E_BASE_PATH || "").replace(/\/+$/, ""); // "" = akar domain; "/proposalbima-frontend" = situs proyek
+const BASE = (process.env.E2E_BASE_PATH || "").replace(/\/+$/, ""); // "" = akar domain; "/proposalbima-front" = situs proyek
 const API = `http://localhost:${API_PORT}`, ORIGIN = `http://localhost:${WEB_PORT}`, WEB = ORIGIN + BASE;
 const mongo = process.env.TEST_MONGOSTRING || "mongodb://localhost:27018";
 const dbName = "pdk_e2e_" + randomBytes(3).toString("hex");

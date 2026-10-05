@@ -33,7 +33,7 @@ if (auth.requireLogin()) {
     setBusy(btn, true, "Memproses...");
     try {
       const res = await api.post("/api/enroll", { skema, invite_code: form.invite_code.value.trim() });
-      window.location.assign(api.safePath(res.redirect) || "/select-skema/");
+      api.go(api.safePath(res.redirect) || "/select-skema/");
     } catch (err) {
       showFormError(errBox, err.message);
       setBusy(btn, false);

@@ -9,7 +9,7 @@ if (auth.requireLogin()) {
   try {
     const [me, enr] = await Promise.all([auth.loadMe(), api.get("/api/enrollments")]);
     if (enr.enrollments.length === 0) {
-      window.location.replace("/enroll/");
+      api.goReplace("/enroll/");
     } else {
       const current = me.user.selected_skema;
       list.replaceChildren(
@@ -24,7 +24,7 @@ if (auth.requireLogin()) {
                 setBusy(btn, true, "Memproses...");
                 try {
                   const res = await api.post("/api/skema/pilih", { skema: e.skema });
-                  window.location.assign(api.safePath(res.redirect) || "/modul/?slug=beranda");
+                  api.go(api.safePath(res.redirect) || "/modul/?slug=beranda");
                 } catch (err) {
                   showFormError(errBox, err.message);
                   setBusy(btn, false);

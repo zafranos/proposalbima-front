@@ -2,7 +2,12 @@
 // mengganti penanda __API_ORIGIN__ dengan origin API. CSS dibangun terpisah
 // oleh `npm run build:css`, dan vendor oleh scripts/vendor.mjs.
 //
-//   PDK_API_ORIGIN=https://... npm run build
+//   PDK_API_ORIGIN=https://... PDK_BASE_PATH=/nama-repo npm run build
+//
+// PDK_BASE_PATH = awalan jalur situs: kosong di akar domain atau domain kustom (mis. repo
+// <org>.github.io), "/nama-repo" di situs proyek GitHub Pages (<org>.github.io/nama-repo/).
+// Atribut href/src berawalan "/" di HTML diberi awalan ini saat build; JS memakai
+// config.basePath lewat withBase().
 //
 // Origin API ikut masuk ke CSP (connect-src) dan ke config.js. Di CI
 // (PDK_REQUIRE_API_ORIGIN=1) build gagal bila PDK_API_ORIGIN kosong, supaya
@@ -21,6 +26,12 @@ if (!origin) {
   }
   origin = "http://localhost:8080";
 }
+let base = (process.env.PDK_BASE_PATH || "").trim().replace(/\/+$/, "");
+if (!/^(\/[A-Za-z0-9._~-]+)*$/.test(base)) {
+  console.error(`PDK_BASE_PATH harus kosong atau berbentuk /nama (tanpa garis miring akhir), bukan: ${base}`);
+  process.exit(1);
+}
+
 if (!/^https?:\/\/[^\s/]+$/.test(origin)) {
   console.error(`PDK_API_ORIGIN harus berupa origin tanpa path, bukan: ${origin}`);
   process.exit(1);
@@ -48,8 +59,11 @@ function walk(dir, rel = "") {
       mkdirSync(join(dest, ".."), { recursive: true });
       if ([".html", ".js"].includes(extname(name))) {
         let text = readFileSync(path, "utf8");
-        if (name.endsWith(".html")) text = text.replaceAll(HEAD_MARKER, headPartial);
-        writeFileSync(dest, text.replaceAll("__API_ORIGIN__", origin));
+        if (name.endsWith(".html")) {
+          text = text.replaceAll(HEAD_MARKER, headPartial);
+          if (base) text = text.replace(/(\s(?:href|src))="\/(?!\/)/g, `$1="${base}/`);
+        }
+        writeFileSync(dest, text.replaceAll("__API_ORIGIN__", origin).replaceAll("__BASE_PATH__", base));
       } else {
         cpSync(path, dest);
       }
@@ -58,4 +72,4 @@ function walk(dir, rel = "") {
 }
 walk(".");
 for (const f of ["CNAME", ".nojekyll"]) if (existsSync(f)) cpSync(f, join(OUT, f));
-console.log(`dist/ disusun; API origin = ${origin}`);
+console.log(`dist/ disusun; API origin = ${origin}; base path = "${base}"`);

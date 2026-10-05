@@ -10,7 +10,8 @@
     "dev": "npm run build && node scripts/serve.mjs",
     "serve": "node scripts/serve.mjs",
     "check": "node scripts/check.mjs",
-    "test:e2e": "node tests/e2e/run.mjs"
+    "test:e2e": "node tests/e2e/run.mjs",
+    "test:e2e:subpath": "E2E_BASE_PATH=/proposalbima-frontend node tests/e2e/run.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

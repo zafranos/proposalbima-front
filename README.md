@@ -19,6 +19,7 @@ npm run build        # dist/: HTML + assets, CSS Tailwind, vendor Preline dan fo
 npm run check        # aturan CSP dan tanpa CDN pada dist/ (keluar 1 bila melanggar)
 npm run dev          # build lalu sajikan dist/ di http://localhost:5173
 npm run test:e2e     # uji peramban (Chrome terpasang + playwright-core); butuh MongoDB uji, lihat bawah
+npm run test:e2e:subpath   # sama, tetapi situs disajikan di /proposalbima-frontend (mode situs proyek)
 ```
 
 Backend lokal untuk `npm run dev`: lihat `../gocroot/README.md`; `ALLOWED_ORIGINS` harus memuat
@@ -35,7 +36,7 @@ npm run test:e2e                 # E2E_KEEP=1 menyimpan .tmp/ (tangkapan layar) 
 `tests/e2e/run.mjs` membangun situs, membuat DB uji unik, menyemai admin (`seed-admin`), menyalakan
 backend dan situs, menjalankan `tests/e2e/app.test.mjs`, lalu membersihkan semuanya. Berkas sementara
 hanya di `.tmp/` (dan `TMPDIR` diarahkan ke sana); `CHROME_PATH` mengganti lokasi Chrome. Yang diuji
-termasuk: tanpa pelanggaran CSP di tiap halaman, isi papan klip sama dengan teks kartu, unduhan sama
+termasuk: kedua mode (akar dan subpath), semua tautan internal berawalan situs, tanpa pelanggaran CSP di tiap halaman, isi papan klip sama dengan teks kartu, unduhan sama
 dengan sumber, laci sidebar di 375 px benar-benar masuk layar, rantai pengalihan 409, dan axe (WCAG 2
 A/AA) pada terang dan gelap.
 
@@ -59,16 +60,21 @@ assets/js/reader/     enhance (kartu, sorotan penanda, tabel, unduhan), toc (scr
   backend yang sudah dirender dan dilint. Gunakan `mount(el, ...)` dari `ui.js`, bukan `replaceChildren`
   mentah: yang terakhir mengubah argumen `null` menjadi teks "null".
 - **Tanpa CDN.** Font (Inter) dan Preline disalin ke `dist/assets/` oleh `scripts/vendor.mjs`.
-- **Tautan berawalan `/`** mengharuskan situs berada di akar domain: repo `<owner>.github.io` atau domain
-  kustom. Situs proyek (`<owner>.github.io/<repo>/`) merusak tautan ini.
+- **Base path.** Repo ini situs proyek GitHub Pages (`https://zafranos.github.io/proposalbima-frontend/`), jadi jalur
+  internal ditulis relatif terhadap akar aplikasi (`/login/`) dan awalan situs ditambahkan di satu tempat: build
+  (`PDK_BASE_PATH`) untuk HTML, `withBase()` dan `go()` di `api.js` untuk JS, dan `enhance.js` untuk tautan di
+  isi materi. `PDK_BASE_PATH` kosong = akar domain atau domain kustom. `npm run check` (dengan `PDK_BASE_PATH`
+  yang sama) menolak `href`/`src` tanpa awalan. Gunakan `api.go()`, `api.goReplace()`, dan `api.withBase()`,
+  jangan `location.assign("/...")` atau `href: "/..."` mentah.
 - **Build produksi menolak origin API kosong** (`PDK_REQUIRE_API_ORIGIN=1` di CI).
 - **Token** disimpan di localStorage dan dikirim sebagai Bearer; 401 membersihkan sesi dan mengalihkan ke
   masuk (kecuali untuk `/login`, `/register`, `/auth/*`); `redirect` dari backend hanya diikuti bila lolos `safePath`.
 
 ## Deploy
 
-`.github/workflows/pages.yml` membangun, memeriksa, dan mengunggah `dist/`. **Belum pernah dijalankan.** Akun:
-organisasi GitHub `zafranos`; repo situs organisasi harus bernama `zafranos.github.io` (alamat
-`https://zafranos.github.io`, di akar domain sehingga tautan berawalan `/` bekerja). Dibutuhkan: variabel repo
-`API_BASE_URL` (alamat fungsi GCF, belum ada) dan Pages diaktifkan dengan sumber "GitHub Actions". Peringatan npm tentang skrip instal `@parcel/watcher`
+`.github/workflows/pages.yml` membangun, memeriksa, dan mengunggah `dist/`. **Belum pernah dijalankan.** Repo:
+`zafranos/proposalbima-frontend` (publik, masih kosong); remote lokal `origin` sudah diatur, belum ada push.
+Base path dihitung otomatis (`/proposalbima-frontend`; variabel repo `PAGES_BASE_PATH` menimpa, `root` = akar
+untuk domain kustom). Dibutuhkan: variabel repo `API_BASE_URL` (alamat fungsi GCF, belum ada; selama kosong deploy
+dilewati, bukan gagal) dan Pages diaktifkan dengan sumber "GitHub Actions". Peringatan npm tentang skrip instal `@parcel/watcher`
 tidak relevan: paket itu hanya dipakai mode `--watch` Tailwind, bukan build.

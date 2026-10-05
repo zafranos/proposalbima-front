@@ -15,7 +15,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Tanpa API_BASE_URL (fungsi GCF belum ada) deploy dilewati, bukan gagal merah.
+  menunggu-api:
+    if: ${{ vars.API_BASE_URL == '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "::notice::Deploy dilewati, variabel repo API_BASE_URL (alamat fungsi GCF) belum diisi."
+
   deploy:
+    if: ${{ vars.API_BASE_URL != '' }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -27,13 +35,31 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Build (CSS, vendor, penggantian origin API)
+      - name: Hitung base path situs
+        id: base
+        # Repo <org>.github.io dilayani di akar domain (base kosong); repo lain adalah situs
+        # proyek di /nama-repo. Variabel repo PAGES_BASE_PATH menimpa (nilai "root" = akar,
+        # dipakai bila ada domain kustom).
+        env:
+          REPO: ${{ github.event.repository.name }}
+          OVERRIDE: ${{ vars.PAGES_BASE_PATH }}
+        run: |
+          if [ "$OVERRIDE" = "root" ]; then BASE=""
+          elif [ -n "$OVERRIDE" ]; then BASE="$OVERRIDE"
+          elif [[ "$REPO" == *.github.io ]]; then BASE=""
+          else BASE="/$REPO"; fi
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "Base path situs: '$BASE'"
+      - name: Build (CSS, vendor, penggantian origin API dan base path)
         env:
           # Variabel repo: alamat fungsi GCF, mis. https://...run.app (tanpa path).
           PDK_API_ORIGIN: ${{ vars.API_BASE_URL }}
           PDK_REQUIRE_API_ORIGIN: "1"
+          PDK_BASE_PATH: ${{ steps.base.outputs.base }}
         run: npm run build
-      - name: Periksa aturan CSP dan tanpa CDN
+      - name: Periksa aturan CSP, tanpa CDN, dan awalan situs
+        env:
+          PDK_BASE_PATH: ${{ steps.base.outputs.base }}
         run: npm run check
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

@@ -15,7 +15,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const backend = resolve(root, "../gocroot");
 const tmp = resolve(root, ".tmp");
 const API_PORT = 18080, WEB_PORT = 5173;
-const API = `http://localhost:${API_PORT}`, WEB = `http://localhost:${WEB_PORT}`;
+const BASE = (process.env.E2E_BASE_PATH || "").replace(/\/+$/, ""); // "" = akar domain; "/proposalbima-frontend" = situs proyek
+const API = `http://localhost:${API_PORT}`, ORIGIN = `http://localhost:${WEB_PORT}`, WEB = ORIGIN + BASE;
 const mongo = process.env.TEST_MONGOSTRING || "mongodb://localhost:27018";
 const dbName = "pdk_e2e_" + randomBytes(3).toString("hex");
 const adminEmail = "admin-e2e@example.test", adminPassword = "kata-sandi-admin-e2e-1";
@@ -45,14 +46,14 @@ function stopAll() {
 async function main() {
   mkdirSync(resolve(tmp, "tmp"), { recursive: true });
 
-  console.log("• build frontend (origin API " + API + ")");
-  run("npm", ["run", "build"], { cwd: root, env: { ...process.env, PDK_API_ORIGIN: API } });
-  run("npm", ["run", "check"], { cwd: root });
+  console.log(`• build frontend (origin API ${API}, base path "${BASE}")`);
+  run("npm", ["run", "build"], { cwd: root, env: { ...process.env, PDK_API_ORIGIN: API, PDK_BASE_PATH: BASE } });
+  run("npm", ["run", "check"], { cwd: root, env: { ...process.env, PDK_BASE_PATH: BASE } });
 
   const keys = Object.fromEntries(run("go", ["run", "./tools/genkeys"], { cwd: backend }).trim().split("\n").map((l) => l.split("=")));
   const env = {
     ...process.env, ...keys, PORT: String(API_PORT), MONGOSTRING: mongo, MONGODB_NAME: dbName,
-    ALLOWED_ORIGINS: WEB, FRONTEND_BASE_URL: WEB, MAIL_SENDER_EMAIL: "noreply@example.test", MAIL_SENDER_NAME: "Proposal DIKTI Uji",
+    ALLOWED_ORIGINS: ORIGIN, FRONTEND_BASE_URL: WEB, MAIL_SENDER_EMAIL: "noreply@example.test", MAIL_SENDER_NAME: "Proposal DIKTI Uji",
   };
 
   console.log("• seed admin di DB " + dbName);
@@ -60,7 +61,7 @@ async function main() {
 
   console.log("• nyalakan backend dan situs");
   const be = spawn("go", ["run", "./run"], { cwd: backend, env, detached: true, stdio: ["ignore", "ignore", "ignore"] });
-  const web = spawn("node", ["scripts/serve.mjs"], { cwd: root, env: { ...process.env, PORT: String(WEB_PORT) }, detached: true, stdio: "ignore" });
+  const web = spawn("node", ["scripts/serve.mjs"], { cwd: root, env: { ...process.env, PORT: String(WEB_PORT), BASE_PATH: BASE }, detached: true, stdio: "ignore" });
   children.push(be, web);
   await waitFor(API + "/", "backend");
   await waitFor(WEB + "/", "situs");

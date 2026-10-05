@@ -18,6 +18,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const DB = process.env.E2E_DB;
 const SRC_MATERI = resolve(here, "../../../gocroot/content/materi");
 const PASSWORD = "kata-sandi-e2e-123";
+// Awalan jalur situs ("" di akar domain, "/proposalbima-frontend" di situs proyek), dari URL dasar uji.
+const BASE = new URL(WEB).pathname.replace(/\/+$/, "");
 const uid = () => randomBytes(3).toString("hex");
 
 let browser;
@@ -253,6 +255,27 @@ test("Terapan: tab varian dan dasar, callout rujukan, status trial", async () =>
   await context.close();
 });
 
+test("semua tautan internal membawa awalan situs dan navigasi tetap di dalamnya", async () => {
+  const { context, page } = await authed(userA);
+  await page.goto(WEB + "/modul/?slug=lampiran-l2");
+  await page.locator("#content h1").waitFor();
+  await page.locator("#nav a").first().waitFor();
+  const bad = await page.evaluate((base) => [...document.querySelectorAll("a[href]")]
+    .map((a) => a.getAttribute("href"))
+    .filter((h) => h.startsWith("/") && !h.startsWith("//") && !(base === "" || h === base || h.startsWith(base + "/") || h.startsWith(base + "?")))
+    , BASE);
+  assert.deepEqual(bad, [], `tautan tanpa awalan situs ${BASE}`);
+  // Tautan di isi materi (dibuat backend relatif terhadap akar aplikasi) juga berawalan situs.
+  const inContent = await page.locator('article a[href*="/modul/?slug="], article a[href*="/berkas/"]').evaluateAll((as) => as.map((a) => a.getAttribute("href")));
+  assert.ok(inContent.length > 0, "isi l2 memuat tautan ke modul atau berkas");
+  assert.ok(inContent.every((h) => h.startsWith(BASE + "/")), `tautan isi tanpa awalan: ${inContent.find((h) => !h.startsWith(BASE + "/"))}`);
+  await page.locator("#nav a", { hasText: "Fase 1" }).click();
+  await page.waitForURL(/slug=fase-1/);
+  assert.ok(new URL(page.url()).pathname.startsWith(BASE + "/modul/"), "tetap di bawah awalan situs: " + page.url());
+  noIssues();
+  await context.close();
+});
+
 test("salin instruksi proyek sama dengan teks di bawah garis", async () => {
   const { context, page } = await authed(userA);
   await page.goto(WEB + "/modul/?slug=instruksi-proyek");
@@ -278,7 +301,7 @@ test("unduhan lewat tombol dan lewat tautan di isi sama dengan sumber", async ()
   assert.equal(d1.suggestedFilename(), "alat-cek-proposal.py");
   assert.equal(sha(readFileSync(await d1.path())), src, "isi unduhan harus sama dengan sumber");
 
-  const link = page.locator('article a[href="/berkas/alat-cek-py"]').first();
+  const link = page.locator('article a[href$="/berkas/alat-cek-py"]').first();
   await link.waitFor();
   const [d2] = await Promise.all([page.waitForEvent("download"), link.click()]);
   assert.equal(d2.suggestedFilename(), "alat-cek-proposal.py");

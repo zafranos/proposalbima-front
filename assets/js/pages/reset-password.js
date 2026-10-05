@@ -27,7 +27,7 @@ form.addEventListener("submit", async (e) => {
     result.textContent = res.message + " Mengalihkan ke halaman masuk...";
     result.classList.remove("hidden");
     form.classList.add("hidden");
-    setTimeout(() => window.location.assign("/login/"), 2000);
+    setTimeout(() => api.go("/login/"), 2000);
   } catch (err) {
     showFormError(errBox, err.message);
     setBusy(btn, false);

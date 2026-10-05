@@ -1,5 +1,6 @@
 // Peningkatan isi materi yang sudah dirender server (HTML dari backend; sudah dilint tanpa
 // <script>, handler inline, atau atribut style). Semua perubahan lewat DOM; tidak ada innerHTML baru.
+import { withBase } from "../api.js";
 import { copyText, h, icon, toast } from "../ui.js";
 
 // Penanda isian yang disorot di dalam pagar kode (tanpa mengubah teks, jadi salinan tetap utuh).
@@ -18,7 +19,9 @@ export function enhanceContent(root, { salinTeks = "", download } = {}) {
   cardify(root);
   copyOtherPre(root);
   if (salinTeks) addInstructionCopy(root, salinTeks);
+  // Urutan penting: tangkap id unduhan dari href asli SEBELUM href diberi awalan situs.
   interceptDownloads(root, download);
+  prefixInternalLinks(root);
   root.querySelectorAll("h1,h2,h3,h4").forEach((el) => el.classList.add("scroll-mt-20"));
 }
 
@@ -122,11 +125,20 @@ function addInstructionCopy(root, salinTeks) {
 function interceptDownloads(root, download) {
   if (!download) return;
   root.querySelectorAll('a[href^="/berkas/"]').forEach((a) => {
+    const id = decodeURIComponent(a.getAttribute("href").replace("/berkas/", ""));
     a.addEventListener("click", (e) => {
       e.preventDefault();
-      const id = decodeURIComponent(new URL(a.href).pathname.replace("/berkas/", ""));
       const label = a.textContent.trim();
       download(id, /\.[a-z0-9]{2,5}$/i.test(label) ? label : id);
     });
+  });
+}
+
+// Tautan di isi materi dibuat backend relatif terhadap akar aplikasi ("/modul/?slug=...");
+// beri awalan situs agar benar juga di situs proyek.
+function prefixInternalLinks(root) {
+  root.querySelectorAll('a[href^="/"]').forEach((a) => {
+    const href = a.getAttribute("href");
+    if (!href.startsWith("//")) a.setAttribute("href", withBase(href));
   });
 }

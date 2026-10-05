@@ -38,7 +38,7 @@ async function main() {
   } catch (err) {
     const target = api.safePath(err.data && err.data.redirect);
     if ((err.status === 403 || err.status === 409) && target && !target.startsWith("/pending-approval")) {
-      window.location.assign(target);
+      api.go(target);
       return;
     }
     if (err.status === 403) return showMessage("Modul ini terkunci", err.message, [["Lihat status akun", "/pending-approval/"]]);
@@ -53,7 +53,7 @@ function showMessage(title, text, links = []) {
   mount(box,
     h("h1", { class: "text-2xl font-bold", text: title }),
     h("p", { class: "mt-3 text-muted-foreground-1", text }),
-    links.length ? h("p", { class: "mt-5 flex gap-3" }, ...links.map(([t, href]) => h("a", { href, class: `${BTN} bg-primary text-primary-foreground hover:bg-primary-hover`, text: t }))) : null,
+    links.length ? h("p", { class: "mt-5 flex gap-3" }, ...links.map(([t, href]) => h("a", { href: api.withBase(href), class: `${BTN} bg-primary text-primary-foreground hover:bg-primary-hover`, text: t }))) : null,
   );
   document.title = title + " | Proposal DIKTI";
   box.focus({ preventScroll: true });
@@ -109,7 +109,7 @@ function navItem(m) {
   }
   const on = m.slug === slug;
   return h("a", {
-    href: "/modul/?slug=" + encodeURIComponent(m.slug),
+    href: api.withBase("/modul/?slug=" + encodeURIComponent(m.slug)),
     "aria-current": on ? "page" : null,
     class: `${base} hover:bg-sidebar-nav-hover focus:outline-none focus:ring-2 focus:ring-primary-focus ${on ? "bg-primary-50 font-medium text-primary-900 dark:bg-primary-950 dark:text-primary-100" : "text-sidebar-nav-foreground"}`,
   }, m.selesai ? icon("check", "mt-0.5 size-3.5 text-teal-700 dark:text-teal-300") : h("span", { class: "mt-0.5 size-3.5 shrink-0" }),
@@ -150,7 +150,7 @@ function paintModul(modul) {
     groupLabel ? h("p", { class: "mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground-1", text: groupLabel }) : null,
     rv ? h("aside", { class: "mb-6 flex gap-3 rounded-lg border border-sky-300 bg-sky-50 p-4 text-sm text-sky-900 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-100", role: "note" },
       icon("info", "mt-0.5 size-4"),
-      h("p", {}, rv.teks + " ", h("a", { class: "font-medium underline", href: `/modul/?slug=${encodeURIComponent(rv.modul)}&bagian=${encodeURIComponent(rv.bagian)}`, text: "Buka bagian itu" }), ".")) : null,
+      h("p", {}, rv.teks + " ", h("a", { class: "font-medium underline", href: api.withBase(`/modul/?slug=${encodeURIComponent(rv.modul)}&bagian=${encodeURIComponent(rv.bagian)}`), text: "Buka bagian itu" }), ".")) : null,
     tabs ? tabs.el : null,
     ...parts.map((b) => panels[b.kunci]),
     downloadsBlock(modul),
@@ -229,7 +229,7 @@ function pagerBlock(modul) {
     const cls = "flex min-w-0 items-center gap-3 rounded-lg border border-line-2 p-3";
     return m.terkunci
       ? h("span", { class: `${cls} cursor-not-allowed text-muted-foreground-1`, "aria-disabled": "true" }, ...body, icon("lock", "size-3.5"))
-      : h("a", { href: "/modul/?slug=" + encodeURIComponent(m.slug), class: `${cls} hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus ${dir === "next" ? "justify-end text-end" : ""}` }, ...body);
+      : h("a", { href: api.withBase("/modul/?slug=" + encodeURIComponent(m.slug)), class: `${cls} hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus ${dir === "next" ? "justify-end text-end" : ""}` }, ...body);
   };
   return h("nav", { class: "mt-8 grid gap-3 sm:grid-cols-2", "aria-label": "Navigasi modul" }, link(modul.prev, "prev"), link(modul.next, "next"));
 }

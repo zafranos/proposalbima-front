@@ -6,12 +6,18 @@ import { join, normalize, extname } from "node:path";
 
 const ROOT = "dist";
 const PORT = Number(process.env.PORT || 5173);
+// Meniru situs proyek GitHub Pages: BASE_PATH=/nama-repo menyajikan dist/ di bawah awalan itu saja.
+const BASE = (process.env.BASE_PATH || "").replace(/\/+$/, "");
 const TYPES = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".woff2": "font/woff2", ".ico": "image/x-icon",
 };
 
 async function resolveFile(urlPath) {
+  if (BASE) {
+    if (urlPath !== BASE && !urlPath.startsWith(BASE + "/")) return [join(ROOT, "404.html"), 404];
+    urlPath = urlPath.slice(BASE.length) || "/";
+  }
   const clean = normalize(decodeURIComponent(urlPath)).replace(/^(\.\.[/\\])+/, "");
   let p = join(ROOT, clean);
   try {
@@ -24,7 +30,9 @@ async function resolveFile(urlPath) {
 }
 
 createServer(async (req, res) => {
-  const [file, status] = await resolveFile(new URL(req.url, "http://x").pathname);
+  const path = new URL(req.url, "http://x").pathname;
+  if (BASE && path === BASE) { res.writeHead(301, { Location: BASE + "/" }).end(); return; }
+  const [file, status] = await resolveFile(path);
   try {
     const body = await readFile(file);
     res.writeHead(status, { "Content-Type": TYPES[extname(file)] || "application/octet-stream", "X-Content-Type-Options": "nosniff" });
@@ -32,4 +40,4 @@ createServer(async (req, res) => {
   } catch {
     res.writeHead(500).end("galat server");
   }
-}).listen(PORT, "127.0.0.1", () => console.log(`http://localhost:${PORT} (menyajikan ${ROOT}/)`));
+}).listen(PORT, "127.0.0.1", () => console.log(`http://localhost:${PORT}${BASE}/ (menyajikan ${ROOT}/)`));

@@ -22,8 +22,14 @@ export function safePath(p) {
 
 const NEVER = new Promise(() => {});
 
+// Semua jalur internal ditulis relatif terhadap akar aplikasi ("/login/"); awalan situs
+// (config.basePath) ditambahkan hanya di sini, saat membentuk URL atau berpindah halaman.
+export function withBase(path) { return config.basePath + path; }
+export function go(path) { window.location.assign(withBase(path)); }
+export function goReplace(path) { window.location.replace(withBase(path)); }
+
 function navigate(path) {
-  window.location.assign(path);
+  go(path);
   return NEVER;
 }
 

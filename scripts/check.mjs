@@ -8,6 +8,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const DIR = "dist";
+const BASE = (process.env.PDK_BASE_PATH || "").trim().replace(/\/+$/, "");
 const problems = [];
 const htmlFiles = [];
 (function walk(d) {
@@ -34,7 +35,12 @@ for (const f of htmlFiles) {
   else {
     if (/unsafe-inline|unsafe-eval/.test(csp[1])) problems.push(`${f}: CSP memuat unsafe-*`);
     if (!/script-src 'self'/.test(csp[1])) problems.push(`${f}: CSP tanpa script-src 'self'`);
-    if (html.includes("<!--@head-->")) problems.push(`${f}: penanda <!--@head--> belum diganti`);
+    if (BASE) {
+    for (const m of html.matchAll(/\s(?:href|src)="(\/(?!\/)[^"]*)"/g)) {
+      if (!(m[1] === BASE || m[1].startsWith(BASE + "/") || m[1].startsWith(BASE + "?") || m[1].startsWith(BASE + "#"))) problems.push(`${f}: tautan tanpa awalan situs ${BASE}: ${m[1]}`);
+    }
+  }
+  if (html.includes("<!--@head-->")) problems.push(`${f}: penanda <!--@head--> belum diganti`);
   if (/__API_ORIGIN__/.test(html)) problems.push(`${f}: penanda __API_ORIGIN__ belum diganti`);
   }
 }

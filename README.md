@@ -1,15 +1,15 @@
 # Proposal DIKTI: frontend
 
 Situs statis untuk GitHub Pages: Tailwind v4 + Preline UI, HTML biasa dan modul ES, tanpa framework
-JS dan tanpa CDN saat runtime. Backend ada di `../gocroot/`. Rancangan lengkap:
-`../../.plans/rancangan-webapp-proposal-dikti.md`.
+JS dan tanpa CDN saat runtime. Situs ini hanya antarmuka: akun, pilihan skema, dan materi disajikan oleh
+API backend (Go + MongoDB, repo terpisah), dan semua materi berada di balik login.
 
-## Status
+## Cakupan
 
-Tahap 1 dan 5 selesai: kerangka, halaman masuk/daftar/lupa dan reset kata sandi, lengkapi profil,
-pilih dan tambah skema, menunggu persetujuan, profil, dan pembaca materi. Panel admin, landing
-yang utuh, serta halaman privasi dan ketentuan menyusul (tahap 6). Tombol "Masuk dengan Google"
-belum ada: backend siap, tetapi UI-nya tidak bisa diuji tanpa client ID Google.
+Halaman masuk, daftar, lupa dan reset kata sandi, lengkapi profil, pilih dan tambah skema, menunggu
+persetujuan, profil, dan pembaca materi (daftar isi, tab, kartu salin, unduhan, progres). Belum tersedia:
+panel admin, halaman privasi dan ketentuan, serta tombol "Masuk dengan Google" (backend mendukungnya, UI
+menunggu client ID).
 
 ## Perintah
 
@@ -18,22 +18,25 @@ npm install
 npm run build        # dist/: HTML + assets, CSS Tailwind, vendor Preline dan font
 npm run check        # aturan CSP dan tanpa CDN pada dist/ (keluar 1 bila melanggar)
 npm run dev          # build lalu sajikan dist/ di http://localhost:5173
-npm run test:e2e     # uji peramban (Chrome terpasang + playwright-core); butuh MongoDB uji, lihat bawah
+npm run test:e2e     # uji peramban (Chrome terpasang + playwright-core); butuh backend dan MongoDB uji
 npm run test:e2e:subpath   # sama, tetapi situs disajikan di /proposalbima-front (mode situs proyek)
 ```
 
-Backend lokal untuk `npm run dev`: lihat `../gocroot/README.md`; `ALLOWED_ORIGINS` harus memuat
-`http://localhost:5173`. Origin API default `http://localhost:8080`; ganti dengan
+`npm run dev` membutuhkan backend yang berjalan; `ALLOWED_ORIGINS` backend harus memuat
+`http://localhost:5173`. Origin API bawaan `http://localhost:8080`; ganti dengan
 `PDK_API_ORIGIN=http://localhost:18080 npm run build`.
 
 ## Uji peramban
+
+Uji ini menjalankan backend sungguhan, jadi butuh checkout repo backend di folder sejajar bernama
+`../gocroot` dan MongoDB uji:
 
 ```bash
 docker run -d --rm --name pdk-mongo-test -p 27018:27017 mongo:7
 npm run test:e2e                 # E2E_KEEP=1 menyimpan .tmp/ (tangkapan layar) setelah selesai
 ```
 
-`tests/e2e/run.mjs` membangun situs, membuat DB uji unik, menyemai admin (`seed-admin`), menyalakan
+`tests/e2e/run.mjs` membangun situs, membuat database uji unik, menyemai akun admin uji, menyalakan
 backend dan situs, menjalankan `tests/e2e/app.test.mjs`, lalu membersihkan semuanya. Berkas sementara
 hanya di `.tmp/` (dan `TMPDIR` diarahkan ke sana); `CHROME_PATH` mengganti lokasi Chrome. Yang diuji
 termasuk: kedua mode (akar dan subpath), semua tautan internal berawalan situs, tanpa pelanggaran CSP di tiap halaman, isi papan klip sama dengan teks kartu, unduhan sama
@@ -60,22 +63,27 @@ assets/js/reader/     enhance (kartu, sorotan penanda, tabel, unduhan), toc (scr
   backend yang sudah dirender dan dilint. Gunakan `mount(el, ...)` dari `ui.js`, bukan `replaceChildren`
   mentah: yang terakhir mengubah argumen `null` menjadi teks "null".
 - **Tanpa CDN.** Font (Inter) dan Preline disalin ke `dist/assets/` oleh `scripts/vendor.mjs`.
-- **Base path.** Repo ini situs proyek GitHub Pages (`https://zafranos.github.io/proposalbima-front/`), jadi jalur
-  internal ditulis relatif terhadap akar aplikasi (`/login/`) dan awalan situs ditambahkan di satu tempat: build
-  (`PDK_BASE_PATH`) untuk HTML, `withBase()` dan `go()` di `api.js` untuk JS, dan `enhance.js` untuk tautan di
-  isi materi. `PDK_BASE_PATH` kosong = akar domain atau domain kustom. `npm run check` (dengan `PDK_BASE_PATH`
-  yang sama) menolak `href`/`src` tanpa awalan. Gunakan `api.go()`, `api.goReplace()`, dan `api.withBase()`,
-  jangan `location.assign("/...")` atau `href: "/..."` mentah.
+- **Base path.** Situs proyek GitHub Pages dilayani di `/nama-repo/`, jadi jalur internal ditulis relatif
+  terhadap akar aplikasi (`/login/`) dan awalan situs ditambahkan di satu tempat: build (`PDK_BASE_PATH`)
+  untuk HTML, `withBase()` dan `go()` di `api.js` untuk JS, dan `enhance.js` untuk tautan di isi materi.
+  `PDK_BASE_PATH` kosong = akar domain atau domain kustom. `npm run check` (dengan `PDK_BASE_PATH` yang sama)
+  menolak `href`/`src` tanpa awalan. Gunakan `api.go()`, `api.goReplace()`, dan `api.withBase()`, jangan
+  `location.assign("/...")` atau `href: "/..."` mentah.
 - **Build produksi menolak origin API kosong** (`PDK_REQUIRE_API_ORIGIN=1` di CI).
 - **Token** disimpan di localStorage dan dikirim sebagai Bearer; 401 membersihkan sesi dan mengalihkan ke
   masuk (kecuali untuk `/login`, `/register`, `/auth/*`); `redirect` dari backend hanya diikuti bila lolos `safePath`.
 
 ## Deploy
 
-`.github/workflows/pages.yml` membangun, memeriksa, dan mengunggah `dist/`. **Belum pernah dijalankan.** Repo:
-`zafranos/proposalbima-front` (**privat untuk sementara**). Pages di paket organisasi `free` butuh repo publik; jadikan publik
-dengan `gh repo edit zafranos/proposalbima-front --visibility public --accept-visibility-change-consequences` saat siap.
-Base path dihitung otomatis (`/proposalbima-front`; variabel repo `PAGES_BASE_PATH` menimpa, `root` = akar
-untuk domain kustom). Dibutuhkan: variabel repo `API_BASE_URL` (alamat fungsi GCF, belum ada; selama kosong deploy
-dilewati, bukan gagal) dan Pages diaktifkan dengan sumber "GitHub Actions". Peringatan npm tentang skrip instal `@parcel/watcher`
-tidak relevan: paket itu hanya dipakai mode `--watch` Tailwind, bukan build.
+`.github/workflows/pages.yml` membangun, memeriksa (`npm run check`), dan mengunggah `dist/` ke GitHub Pages.
+Yang dibutuhkan:
+
+- Pages diaktifkan dengan sumber "GitHub Actions".
+- Variabel repo `API_BASE_URL`: alamat API backend tanpa path. Selama kosong, deploy dilewati (bukan gagal).
+- Base path dihitung dari nama repo (`/nama-repo`; repo `<org>.github.io` dilayani di akar). Variabel repo
+  `PAGES_BASE_PATH` menimpa; nilai `root` = akar domain, dipakai bila Pages memakai domain kustom.
+- Origin situs harus terdaftar di `ALLOWED_ORIGINS` backend (CORS), dan `FRONTEND_BASE_URL` backend harus
+  menunjuk ke alamat situs ini (dipakai untuk tautan di email reset kata sandi).
+
+Peringatan npm tentang skrip instal `@parcel/watcher` tidak relevan: paket itu hanya dipakai mode `--watch`
+Tailwind, bukan build.

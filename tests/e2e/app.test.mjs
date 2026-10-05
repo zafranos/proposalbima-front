@@ -2,9 +2,9 @@
 // dinyalakan oleh run.mjs. Tiap tes memeriksa juga bahwa tidak ada pelanggaran CSP atau
 // galat skrip di konsol. Tes berjalan berurutan dan berbagi satu peserta (userA).
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -16,6 +16,9 @@ const ADMIN = { email: process.env.E2E_ADMIN_EMAIL, password: process.env.E2E_AD
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const here = dirname(fileURLToPath(import.meta.url));
 const DB = process.env.E2E_DB;
+const ASSISTANT = process.env.E2E_ASSISTANT;
+// Pengganti skrip asisten pihak ketiga di semua tes: tanpa jaringan luar, dan widget asli tidak ikut diperiksa axe.
+const ASSISTANT_STUB = "window.__assistantStub = { src: document.currentScript && document.currentScript.src, path: location.pathname };";
 const SRC_MATERI = resolve(here, "../../../gocroot/content/materi");
 const PASSWORD = "kata-sandi-e2e-123";
 // Awalan jalur situs ("" di akar domain, "/proposalbima-front" di situs proyek), dari URL dasar uji.
@@ -50,6 +53,7 @@ async function login(email, password) {
 
 async function newPage({ viewport = { width: 1280, height: 900 }, colorScheme = "light", session } = {}) {
   const context = await browser.newContext({ viewport, colorScheme, acceptDownloads: true, permissions: ["clipboard-read", "clipboard-write"] });
+  await context.route(ASSISTANT, (route) => route.fulfill({ contentType: "application/javascript", body: ASSISTANT_STUB }));
   if (session) {
     await context.addInitScript(([t, u]) => {
       localStorage.setItem("pdk_token", t);
@@ -1018,6 +1022,79 @@ test("admin: ketikan saat menyimpan tetap belum tersimpan; konflik mempertahanka
   await api("/admin/landing", { method: "DELETE", token: adminT }); // kembali ke bawaan untuk uji berikutnya
   noIssues();
   await context.close();
+});
+
+// ── Asisten obrolan pihak ketiga: berjalan di origin yang sama dengan token login, jadi dibatasi keras ──
+const cspOf = (page) => page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute("content");
+const stubbed = (page) => page.evaluate(() => window.__assistantStub || null);
+
+test("asisten obrolan: hanya di landing untuk pengunjung yang belum masuk; kelonggaran CSP hanya di landing", async () => {
+  // belum masuk: skrip disuntikkan (document.currentScript tersedia) dan CSP landing memuat kelonggarannya
+  const anon = await newPage();
+  await anon.page.goto(WEB + "/");
+  const stub = await until(() => stubbed(anon.page), "skrip asisten dimuat untuk pengunjung yang belum masuk");
+  assert.equal(stub.src, ASSISTANT);
+  const csp = await cspOf(anon.page);
+  assert.match(csp, /script-src 'self' https:\/\/www\.thunderbolt\.com;/);
+  assert.match(csp, /frame-src https:\/\/www\.thunderbolt\.com;/);
+  assert.match(csp, /connect-src 'self' https:\/\/api\.thunderbolt\.com /);
+  assert.match(csp, /style-src 'self' 'unsafe-inline';/);
+  noIssues();
+  await anon.context.close();
+
+  // sudah masuk: tidak diminta sama sekali (token login di localStorage tidak boleh terjangkau skrip pihak ketiga)
+  const member = await authed(userA);
+  const asked = [];
+  member.context.on("request", (r) => { if (r.url().startsWith("https://www.thunderbolt.com/")) asked.push(r.url()); });
+  await member.page.goto(WEB + "/");
+  await member.page.locator("#cta a").waitFor();
+  await member.page.waitForLoadState("networkidle");
+  assert.deepEqual(asked, [], "pengguna yang sudah masuk tidak boleh memuat skrip pihak ketiga");
+  assert.equal(await stubbed(member.page), null);
+  await member.context.close();
+
+  // halaman lain: CSP ketat, tidak ada permintaan ke vendor (halaman reset kata sandi memuat token di alamatnya)
+  for (const [label, make, path] of [
+    ["masuk", () => newPage(), "/login/"], ["daftar", () => newPage(), "/register/"], ["lupa kata sandi", () => newPage(), "/forgot-password/"],
+    ["reset kata sandi", () => newPage(), "/reset-password/?token=abc"], ["materi", () => authed(userA), "/modul/?slug=beranda"], ["admin", () => authed(ADMIN), "/admin/dashboard/"],
+  ]) {
+    const { context, page } = await make();
+    let touched = false;
+    context.on("request", (r) => { if (/thunderbolt\.com/.test(r.url())) touched = true; });
+    await page.goto(WEB + path);
+    await page.waitForLoadState("networkidle");
+    assert.doesNotMatch(await cspOf(page), /thunderbolt|frame-src|unsafe-inline/, `CSP ketat di halaman ${label}`);
+    assert.equal(touched, false, `tidak ada permintaan ke vendor di halaman ${label}`);
+    assert.equal(await stubbed(page), null, `skrip asisten tidak dijalankan di halaman ${label}`);
+    await context.close();
+  }
+  noIssues();
+});
+
+test("build tanpa asisten: CSP ketat di semua halaman; vendor tak dikenal dan keluaran di luar .tmp ditolak", async () => {
+  const root = resolve(here, "../..");
+  const env = { ...process.env, PDK_API_ORIGIN: API, PDK_BASE_PATH: BASE };
+  delete env.PDK_ASSISTANT_SRC;
+  const build = (extra) => spawnSync("node", ["scripts/build-site.mjs"], { cwd: root, env: { ...env, ...extra }, encoding: "utf8" });
+  const out = resolve(TMP, "build-tanpa-asisten");
+
+  const ok = build({ PDK_OUT: out });
+  assert.equal(ok.status, 0, ok.stderr);
+  for (const f of ["index.html", "login/index.html", "admin/landing/index.html"]) {
+    const policy = readFileSync(resolve(out, f), "utf8").match(/Content-Security-Policy" content="([^"]*)"/)[1];
+    assert.doesNotMatch(policy, /thunderbolt|frame-src|unsafe-inline/, `CSP ketat tanpa asisten: ${f}`);
+  }
+  assert.match(readFileSync(resolve(out, "assets/js/config.js"), "utf8"), /assistantSrc: ""/);
+
+  for (const bad of ["https://evil.example/embed.js", "http://www.thunderbolt.com/gateway/api/v1/thunderbolt-ui/embed.js", `${ASSISTANT}?x=1`, "bukan url"]) {
+    const r = build({ PDK_OUT: out, PDK_ASSISTANT_SRC: bad });
+    assert.equal(r.status, 1, `ditolak: ${bad}`);
+    assert.match(r.stderr, /vendor yang dikenal/);
+  }
+  const escape = build({ PDK_OUT: "../keluar-liar" });
+  assert.equal(escape.status, 1);
+  assert.match(escape.stderr, /PDK_OUT/);
+  assert.equal(existsSync(resolve(root, "../keluar-liar")), false, "folder di luar .tmp tidak boleh dibuat atau dihapus");
 });
 
 test("admin di ponsel: menu dapat dibuka dan halaman tidak bergulir ke samping", async () => {

@@ -16,6 +16,7 @@ import { ALL_FIELDS, ALL_LISTS } from "../assets/js/landing/schema.js";
 
 const DIR = "dist";
 const LANDING = join(DIR, "index.html");
+const ASSISTANT = (process.env.PDK_ASSISTANT_SRC || "").trim();
 const BASE = (process.env.PDK_BASE_PATH || "").trim().replace(/\/+$/, "");
 const problems = [];
 const htmlFiles = [];
@@ -43,8 +44,19 @@ for (const f of htmlFiles) {
   if (!csp) {
     problems.push(`${f}: tanpa meta CSP`);
   } else {
-    if (/unsafe-inline|unsafe-eval/.test(csp[1])) problems.push(`${f}: CSP memuat unsafe-*`);
-    if (!/script-src 'self'/.test(csp[1])) problems.push(`${f}: CSP tanpa script-src 'self'`);
+    let policy = csp[1];
+    if (f === LANDING && ASSISTANT) {
+      // Satu-satunya kelonggaran yang boleh: asal skrip/frame vendor asisten dan gaya inline-nya, hanya di landing.
+      const origin = new URL(ASSISTANT).origin;
+      for (const want of [`script-src 'self' ${origin}`, `frame-src ${origin}`, "style-src 'self' 'unsafe-inline'"]) {
+        if (!policy.includes(want)) problems.push(`${f}: CSP tanpa "${want}" padahal PDK_ASSISTANT_SRC diisi`);
+      }
+      policy = policy.replace("style-src 'self' 'unsafe-inline'", "style-src 'self'");
+    } else if (/frame-src|thunderbolt/i.test(policy)) {
+      problems.push(`${f}: CSP memuat kelonggaran asisten pihak ketiga di halaman yang tidak boleh`);
+    }
+    if (/unsafe-inline|unsafe-eval/.test(policy)) problems.push(`${f}: CSP memuat unsafe-*`);
+    if (!/script-src 'self'/.test(policy)) problems.push(`${f}: CSP tanpa script-src 'self'`);
   }
 
   // Aset yang dirujuk halaman harus ada (mis. ikon, gambar, skrip); rujukan menggantung baru ketahuan di peramban.
@@ -70,6 +82,14 @@ for (const f of htmlFiles) {
   else if (f === LANDING ? !/^index, follow/.test(robots) : robots !== "noindex") problems.push(`${f}: meta robots "${robots}" (hanya landing yang boleh diindeks)`);
 
   if (/gratis/i.test(html)) problems.push(`${f}: memuat kata "gratis"`);
+}
+
+// Asisten: config.js hanya memuat alamat skrip bila PDK_ASSISTANT_SRC diisi, dan persis nilai itu.
+{
+  const cfg = readFileSync(join(DIR, "assets/js/config.js"), "utf8");
+  const m = cfg.match(/assistantSrc:\s*"([^"]*)"/);
+  if (!m) problems.push("config.js tanpa assistantSrc");
+  else if (m[1] !== ASSISTANT) problems.push(`config.js assistantSrc "${m[1]}" tidak sama dengan PDK_ASSISTANT_SRC "${ASSISTANT}"`);
 }
 
 // Dengan PDK_SITE_URL (CI produksi): canonical, Open Graph, robots.txt, dan sitemap.xml harus terisi benar.

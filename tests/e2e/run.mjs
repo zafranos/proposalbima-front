@@ -20,6 +20,8 @@ const API = `http://localhost:${API_PORT}`, ORIGIN = `http://localhost:${WEB_POR
 const mongo = process.env.TEST_MONGOSTRING || "mongodb://localhost:27018";
 const dbName = "pdk_e2e_" + randomBytes(3).toString("hex");
 const adminEmail = "admin-e2e@example.test", adminPassword = "kata-sandi-admin-e2e-1";
+// Konfigurasi produksi: asisten obrolan dipasang. Skripnya TIDAK diambil dari jaringan saat uji: tes menggantinya dengan stub.
+const ASSISTANT = "https://www.thunderbolt.com/gateway/api/v1/thunderbolt-ui/embed.js";
 
 const children = [];
 let exitCode = 1;
@@ -47,8 +49,8 @@ async function main() {
   mkdirSync(resolve(tmp, "tmp"), { recursive: true });
 
   console.log(`• build frontend (origin API ${API}, base path "${BASE}")`);
-  run("npm", ["run", "build"], { cwd: root, env: { ...process.env, PDK_API_ORIGIN: API, PDK_BASE_PATH: BASE } });
-  run("npm", ["run", "check"], { cwd: root, env: { ...process.env, PDK_BASE_PATH: BASE } });
+  run("npm", ["run", "build"], { cwd: root, env: { ...process.env, PDK_API_ORIGIN: API, PDK_BASE_PATH: BASE, PDK_ASSISTANT_SRC: ASSISTANT } });
+  run("npm", ["run", "check"], { cwd: root, env: { ...process.env, PDK_BASE_PATH: BASE, PDK_ASSISTANT_SRC: ASSISTANT } });
 
   const keys = Object.fromEntries(run("go", ["run", "./tools/genkeys"], { cwd: backend }).trim().split("\n").map((l) => l.split("=")));
   const env = {
@@ -69,7 +71,7 @@ async function main() {
   console.log("• jalankan uji peramban\n");
   const r = spawnSync("node", ["--test", "--test-concurrency=1", "--test-timeout=120000", "tests/e2e/app.test.mjs"], {
     cwd: root, stdio: "inherit",
-    env: { ...process.env, TMPDIR: resolve(tmp, "tmp"), E2E_API: API, E2E_WEB: WEB, E2E_DB: dbName, E2E_ADMIN_EMAIL: adminEmail, E2E_ADMIN_PASSWORD: adminPassword, E2E_TMP: tmp },
+    env: { ...process.env, TMPDIR: resolve(tmp, "tmp"), E2E_API: API, E2E_WEB: WEB, E2E_DB: dbName, E2E_ASSISTANT: ASSISTANT, E2E_ADMIN_EMAIL: adminEmail, E2E_ADMIN_PASSWORD: adminPassword, E2E_TMP: tmp },
   });
   exitCode = r.status ?? 1;
 }

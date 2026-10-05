@@ -18,10 +18,15 @@
 // mengisi __SITE_URL__ pada canonical dan Open Graph serta menghasilkan sitemap.xml dan baris Sitemap di
 // robots.txt. Tanpa PDK_SITE_URL, tag yang memerlukan alamat absolut dibuang (alamat relatif tidak sah untuk itu).
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { join, extname } from "node:path";
+import { join, extname, resolve, sep } from "node:path";
 import { iconMarkup } from "../assets/js/icons.js";
 
-const OUT = "dist";
+// PDK_OUT hanya untuk uji build: build menghapus folder keluarannya, jadi hanya "dist" atau folder di dalam .tmp/ yang boleh.
+const OUT = process.env.PDK_OUT || "dist";
+if (OUT !== "dist" && !resolve(OUT).startsWith(resolve(".tmp") + sep)) {
+  console.error(`PDK_OUT hanya boleh "dist" atau folder di dalam .tmp/, bukan: ${OUT}`);
+  process.exit(1);
+}
 const SKIP = new Set(["node_modules", OUT, ".git", ".github", "scripts", "tests", "partials", ".tmp"]);
 // Berkas di assets/ yang hanya bahan sumber: sumber CSS (dibangun terpisah) dan logo asli 1 MB (turunannya dibuat oleh
 // scripts/make-logo.mjs).
@@ -46,6 +51,23 @@ if (!/^https?:\/\/[^\s/]+$/.test(origin)) {
   process.exit(1);
 }
 
+// Asisten obrolan pihak ketiga (opsional): PDK_ASSISTANT_SRC = alamat skrip embed. Skrip pihak ketiga berjalan di
+// origin yang sama dengan token login (localStorage), jadi dibatasi keras: hanya vendor yang kebutuhan CSP-nya sudah
+// diperiksa (tabel di bawah; tambahkan hanya setelah memeriksa skripnya), hanya https tanpa query, hanya dimuat di
+// landing untuk pengunjung yang belum masuk (pages/home.js), dan kelonggaran CSP hanya di landing.
+const ASSISTANT_VENDORS = { "www.thunderbolt.com": ["https://api.thunderbolt.com"] }; // host skrip -> origin tambahan connect-src
+const assistantSrc = (process.env.PDK_ASSISTANT_SRC || "").trim();
+let assistant = null;
+if (assistantSrc) {
+  let u = null;
+  try { u = new URL(assistantSrc); } catch { /* ditolak di bawah */ }
+  if (!u || u.protocol !== "https:" || u.username || u.password || u.search || u.hash || !Object.hasOwn(ASSISTANT_VENDORS, u.hostname)) {
+    console.error(`PDK_ASSISTANT_SRC harus alamat https tanpa query dari vendor yang dikenal (${Object.keys(ASSISTANT_VENDORS).join(", ")}), bukan: ${assistantSrc}`);
+    process.exit(1);
+  }
+  assistant = { origin: u.origin, connect: ASSISTANT_VENDORS[u.hostname] };
+}
+
 let site = (process.env.PDK_SITE_URL || "").trim().replace(/\/+$/, "");
 if (site && !/^https?:\/\/[^\s/]+$/.test(site)) {
   console.error(`PDK_SITE_URL harus berupa origin tanpa path, bukan: ${site}`);
@@ -64,9 +86,23 @@ const year = String(new Date().getFullYear());
 // Bagian <head> bersama (CSP, tema, CSS) disisipkan pada penanda di tiap halaman,
 // supaya CSP hanya ditulis di satu tempat. Satu-satunya perbedaan antarvarian adalah meta robots.
 const headPartial = readFileSync("partials/head.html", "utf8").trimEnd();
+// Kelonggaran CSP untuk asisten, HANYA pada varian landing: skrip dan iframe dari vendor, panggilan API vendor, dan
+// gaya inline (skrip membuat <style> di shadow DOM-nya).
+function withAssistant(head) {
+  const swap = (from, to) => {
+    if (head.split(from).length !== 2) throw new Error(`CSP: "${from}" harus muncul tepat sekali di partials/head.html`);
+    head = head.replace(from, to);
+  };
+  swap("script-src 'self'", `script-src 'self' ${assistant.origin}`);
+  swap("style-src 'self'", "style-src 'self' 'unsafe-inline'");
+  swap("connect-src 'self'", `connect-src 'self' ${assistant.connect.join(" ")}`);
+  swap("object-src 'none'", `frame-src ${assistant.origin}; object-src 'none'`);
+  return head;
+}
+const indexHead = headPartial.replaceAll("__ROBOTS__", "index, follow, max-image-preview:large");
 const HEADS = {
   "<!--@head-->": headPartial.replaceAll("__ROBOTS__", "noindex"),
-  "<!--@head:index-->": headPartial.replaceAll("__ROBOTS__", "index, follow, max-image-preview:large"),
+  "<!--@head:index-->": assistant ? withAssistant(indexHead) : indexHead,
 };
 // Tanpa alamat situs: tag beralamat absolut dibuang beserta keterangan gambarnya (og:image:*) agar tidak yatim.
 const NEEDS_SITE = /^[ \t]*<(?:meta|link)\b[^>]*(?:__SITE_URL__|property="og:image:|name="twitter:card")[^>]*>[ \t]*\r?\n?/gm;
@@ -110,7 +146,7 @@ function walk(dir, rel = "") {
           if (base) text = text.replace(/(\s(?:href|src))="\/(?!\/)/g, `$1="${base}/`);
           text = (siteRoot ? text.replaceAll("__SITE_URL__", siteRoot) : text.replace(NEEDS_SITE, "")).replaceAll("__YEAR__", year);
         }
-        writeFileSync(dest, text.replaceAll("__API_ORIGIN__", origin).replaceAll("__BASE_PATH__", base));
+        writeFileSync(dest, text.replaceAll("__API_ORIGIN__", origin).replaceAll("__BASE_PATH__", base).replaceAll("__ASSISTANT_SRC__", assistantSrc));
       } else {
         cpSync(path, dest);
       }
@@ -128,4 +164,4 @@ if (siteRoot) {
   writeFileSync(join(OUT, "sitemap.xml"),
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>${siteRoot}/</loc><lastmod>${lastmod}</lastmod></url>\n</urlset>\n`);
 }
-console.log(`dist/ disusun; API origin = ${origin}; base path = "${base}"; situs = ${siteRoot || "(tanpa PDK_SITE_URL)"}`);
+console.log(`${OUT}/ disusun; API origin = ${origin}; base path = "${base}"; situs = ${siteRoot || "(tanpa PDK_SITE_URL)"}; asisten = ${assistant ? assistant.origin : "(tidak dipasang)"}`);

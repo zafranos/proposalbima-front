@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="id">
+<head>
+<!--@head-->
+<title>Materi | Proposal DIKTI</title>
+</head>
+<body class="bg-background text-foreground antialiased">
+  <a href="#content" class="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[100] focus:rounded-lg focus:bg-layer focus:px-3 focus:py-2 focus:text-sm focus:shadow">Lewati ke isi</a>
+
+  <!-- Bilah atas -->
+  <header class="sticky top-0 z-50 flex items-center gap-2 border-b border-navbar-line bg-navbar px-3 py-2.5 lg:ps-72">
+    <button type="button" class="inline-flex size-9 items-center justify-center rounded-lg border border-line-2 hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus lg:hidden"
+      aria-haspopup="dialog" aria-expanded="false" aria-controls="sidebar" aria-label="Buka daftar modul" data-hs-overlay="#sidebar">
+      <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="min-w-0 sm:flex-1">
+      <p id="skema-name" class="hidden truncate text-sm font-medium sm:block"></p>
+    </div>
+    <div id="akses-badge" class="ms-auto whitespace-nowrap [&>span]:whitespace-nowrap sm:ms-0"></div>
+    <a id="admin-link" href="/admin/dashboard/" class="hidden rounded-lg px-3 py-1.5 text-sm hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus">Admin</a>
+    <a id="user-link" href="/profile/" class="hidden max-w-40 truncate rounded-lg px-3 py-1.5 text-sm hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus sm:inline-block"></a>
+    <button type="button" data-theme-toggle class="inline-flex size-9 items-center justify-center rounded-lg border border-line-2 hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus"></button>
+    <button type="button" data-logout class="rounded-lg px-3 py-1.5 text-sm hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus">Keluar</button>
+  </header>
+
+  <!-- Sidebar: tetap di layar lebar, laci geser (Preline Offcanvas) di ponsel -->
+  <div id="sidebar"
+    class="hs-overlay [--auto-close:lg] lg:block lg:translate-x-0 hs-overlay-open:translate-x-0 -translate-x-full transition-all duration-300 transform hidden fixed top-0 inset-s-0 bottom-0 z-60 w-72 border-e border-sidebar-line bg-sidebar"
+    role="dialog" tabindex="-1" aria-label="Daftar modul">
+    <div class="flex h-full max-h-full flex-col">
+      <div class="flex items-center justify-between gap-2 px-4 py-3">
+        <a href="/" class="text-lg font-semibold">Proposal DIKTI</a>
+        <button type="button" class="inline-flex size-8 items-center justify-center rounded-full border border-line-2 hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus lg:hidden" data-hs-overlay="#sidebar" aria-label="Tutup daftar modul">
+          <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <p id="skema-name-side" class="px-4 pb-2 text-sm font-medium text-muted-foreground-1 lg:hidden"></p>
+      <div class="px-4 pb-3">
+        <div class="flex items-baseline justify-between text-xs text-muted-foreground-1">
+          <span>Progres alur</span>
+          <span id="progress-text" aria-live="polite"></span>
+        </div>
+        <progress id="progress-bar" value="0" max="1" aria-label="Progres alur" class="mt-1.5 h-2 w-full overflow-hidden rounded-full [&::-moz-progress-bar]:bg-primary [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:bg-primary [&::-webkit-progress-value]:transition-all"></progress>
+      </div>
+      <nav id="nav" aria-label="Modul" class="min-h-0 flex-1 space-y-3 overflow-y-auto px-2 pb-6"></nav>
+    </div>
+  </div>
+
+  <!-- Isi -->
+  <main class="lg:ps-72">
+    <div class="mx-auto max-w-6xl px-4 py-8 xl:grid xl:grid-cols-[minmax(0,1fr)_15rem] xl:gap-10">
+      <div class="min-w-0">
+        <details class="mb-6 rounded-lg border border-line-2 bg-layer px-4 py-2 text-sm xl:hidden">
+          <summary class="cursor-pointer font-medium">Daftar isi halaman</summary>
+          <nav id="toc-nav-mobile" aria-label="Daftar isi halaman" class="mt-2 space-y-0.5"></nav>
+        </details>
+        <article id="content" tabindex="-1" class="focus:outline-none">
+          <p class="text-sm text-muted-foreground-1">Memuat materi...</p>
+        </article>
+      </div>
+      <aside class="hidden xl:block">
+        <div class="sticky top-20">
+          <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground-1">Di halaman ini</p>
+          <nav id="toc-nav" aria-label="Daftar isi" class="max-h-[calc(100vh-8rem)] space-y-0.5 overflow-y-auto"></nav>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script defer src="/assets/js/vendor/preline.js"></script>
+  <script type="module" src="/assets/js/pages/reader.js"></script>
+</body>
+</html>

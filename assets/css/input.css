@@ -1,13 +1,16 @@
 /* Titik masuk Tailwind v4. Dikompilasi ke dist/assets/css/app.css oleh `npm run build:css`.
    Sumber kelas: semua HTML dan JS di repo (otomatis, mengikuti .gitignore) + JS Preline. */
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
-/* Preline UI: varian kelas dan sumber kelas dinamis milik pluginnya. */
+/* Preline UI: varian kelas, sumber kelas dinamis milik pluginnya, dan token tema semantik. */
 @source "../../node_modules/preline/dist/*.js";
 @import "../../node_modules/preline/variants.css";
+@import "../../node_modules/preline/theme.css";
 
-/* Mode gelap lewat kelas .dark pada <html> (diatur assets/js/theme-init.js dan theme.js). */
+/* Mode gelap lewat kelas .dark pada <html> (diatur theme-init.js dan common.js); sama dengan .dark milik Preline. */
 @custom-variant dark (&:where(.dark, .dark *));
+html.dark { color-scheme: dark; }
 
 /* Font dihosting sendiri (tanpa Google Fonts, supaya CSP font-src 'self'). */
 @font-face {
@@ -27,14 +30,36 @@
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
-/* Token tema (arah awal biru-hijau; kontras diperiksa dengan axe di tahap 5). */
 @theme {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+}
 
-  --color-brand-50: oklch(0.97 0.02 200);
-  --color-brand-100: oklch(0.94 0.04 200);
-  --color-brand-500: oklch(0.62 0.11 200);
-  --color-brand-600: oklch(0.52 0.1 200);
-  --color-brand-700: oklch(0.45 0.09 200);
-  --color-brand-900: oklch(0.3 0.06 200);
+/* Identitas warna: skala primary Preline (bawaan biru) diganti teal. Tombol memakai teal-700
+   (teks putih di atasnya >= 4.5:1); di mode gelap tombol tetap teal-700 karena teal-600 + putih
+   hanya ~3.7:1. Kontras seluruh halaman diperiksa dengan axe di uji peramban. */
+:root {
+  --primary-50: var(--color-teal-50);
+  --primary-100: var(--color-teal-100);
+  --primary-200: var(--color-teal-200);
+  --primary-300: var(--color-teal-300);
+  --primary-400: var(--color-teal-400);
+  --primary-500: var(--color-teal-500);
+  --primary-600: var(--color-teal-600);
+  --primary-700: var(--color-teal-700);
+  --primary-800: var(--color-teal-800);
+  --primary-900: var(--color-teal-900);
+  --primary-950: var(--color-teal-950);
+
+  --primary: var(--color-teal-700);
+  --primary-hover: var(--color-teal-800);
+  --primary-focus: var(--color-teal-800);
+  --primary-active: var(--color-teal-800);
+  --primary-checked: var(--color-teal-700);
+}
+.dark {
+  --primary: var(--color-teal-700);
+  --primary-hover: var(--color-teal-600);
+  --primary-focus: var(--color-teal-600);
+  --primary-active: var(--color-teal-600);
+  --primary-checked: var(--color-teal-700);
 }

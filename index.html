@@ -1,39 +1,23 @@
 <!doctype html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' __API_ORIGIN__; object-src 'none'; base-uri 'none'; form-action 'self'">
-  <title>Proposal DIKTI</title>
-  <meta name="description" content="Panduan bertahap menyusun proposal penelitian DPPM bersama asisten AI.">
-  <script src="/assets/js/theme-init.js"></script>
-  <link rel="stylesheet" href="/assets/css/app.css">
+<!--@head-->
+<title>Proposal DIKTI</title>
+<meta name="description" content="Panduan bertahap menyusun proposal penelitian DPPM bersama asisten AI.">
 </head>
-<body class="min-h-screen bg-white text-slate-900 antialiased dark:bg-slate-900 dark:text-slate-100">
-  <header class="border-b border-slate-200 dark:border-slate-700">
-    <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-      <span class="text-lg font-semibold text-brand-700 dark:text-brand-100">Proposal DIKTI</span>
-      <button type="button" data-theme-toggle aria-pressed="false"
-        class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800">
-        Tema
-      </button>
-    </div>
+<body class="min-h-screen bg-background-1 text-foreground antialiased">
+  <header class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+    <span class="text-lg font-semibold">Proposal DIKTI</span>
+    <button type="button" data-theme-toggle class="inline-flex size-9 items-center justify-center rounded-lg border border-line-2 hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus"></button>
   </header>
-
   <main class="mx-auto max-w-5xl px-4 py-16">
     <h1 class="text-4xl font-bold tracking-tight">Susun proposal DPPM, fase demi fase</h1>
-    <p class="mt-4 max-w-2xl text-lg text-slate-700 dark:text-slate-300">
-      Kerangka aplikasi sudah berdiri. Halaman masuk, pembaca materi, dan panel admin menyusul.
-    </p>
-    <p id="api-status" data-state="loading" role="status"
-      class="mt-8 max-w-2xl rounded-lg border border-slate-200 p-4 text-sm data-[state=error]:border-red-300 data-[state=error]:text-red-800 data-[state=ok]:border-emerald-300 dark:border-slate-700 dark:data-[state=error]:text-red-300">
-      Memeriksa API...
+    <p class="mt-4 max-w-2xl text-lg text-muted-foreground-1">Panduan mandiri dengan kartu salin-tempel untuk skema Dasar dan Terapan, dari validasi topik sampai pemeriksaan akhir.</p>
+    <p class="mt-8 flex flex-wrap gap-3" id="cta">
+      <a href="/register/" class="inline-flex items-center rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-focus focus:ring-offset-2">Daftar</a>
+      <a href="/login/" class="inline-flex items-center rounded-lg border border-line-3 px-5 py-2.5 text-sm font-medium hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus">Masuk</a>
     </p>
   </main>
-
-  <script src="/assets/js/config.js"></script>
-  <script src="/assets/js/vendor/preline.js"></script>
-  <script src="/assets/js/theme.js"></script>
-  <script src="/assets/js/status.js"></script>
+  <script type="module" src="/assets/js/pages/home.js"></script>
 </body>
 </html>

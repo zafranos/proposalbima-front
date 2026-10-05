@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="id">
+<head>
+<!--@head-->
+<title>Daftar | Proposal DIKTI</title>
+</head>
+<body class="min-h-screen bg-background-1 text-foreground antialiased">
+  <header class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+    <a href="/" class="text-lg font-semibold">Proposal DIKTI</a>
+    <div class="flex items-center gap-2">
+      
+      <button type="button" data-theme-toggle class="inline-flex size-9 items-center justify-center rounded-lg border border-line-2 hover:bg-muted-hover focus:outline-none focus:ring-2 focus:ring-primary-focus"></button>
+    </div>
+  </header>
+  <main class="mx-auto max-w-md px-4 pb-16 pt-6">
+    <div class="rounded-xl border border-layer-line bg-layer p-6 shadow-sm sm:p-8">
+      <h1 class="text-2xl font-bold">Buat akun</h1>
+      <p class="mt-1 text-sm text-muted-foreground-1">Akun baru menunggu persetujuan admin, kecuali Anda punya kode undangan.</p>
+      <form id="form" class="mt-6 space-y-4" novalidate>
+        <div id="form-error" role="alert" class="hidden rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-700 dark:bg-red-950 dark:text-red-100"></div>
+        <div>
+          <label for="name" class="mb-1.5 block text-sm font-medium">Nama lengkap</label>
+          <input id="name" name="name" type="text" autocomplete="name" required class="block w-full rounded-lg border border-line-3 bg-layer px-3.5 py-2.5 text-sm text-layer-foreground placeholder:text-muted-foreground-1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50">
+        </div>
+        <div>
+          <label for="email" class="mb-1.5 block text-sm font-medium">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required class="block w-full rounded-lg border border-line-3 bg-layer px-3.5 py-2.5 text-sm text-layer-foreground placeholder:text-muted-foreground-1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50">
+        </div>
+        <div>
+          <label for="password" class="mb-1.5 block text-sm font-medium">Kata sandi</label>
+          <input id="password" name="password" type="password" autocomplete="new-password" required aria-describedby="password-hint" class="block w-full rounded-lg border border-line-3 bg-layer px-3.5 py-2.5 text-sm text-layer-foreground placeholder:text-muted-foreground-1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50">
+          <p id="password-hint" class="mt-1 text-xs text-muted-foreground-1">8 sampai 72 karakter.</p>
+        </div>
+        <div>
+          <label for="affiliation" class="mb-1.5 block text-sm font-medium">Afiliasi atau institusi</label>
+          <input id="affiliation" name="affiliation" type="text" autocomplete="organization" required class="block w-full rounded-lg border border-line-3 bg-layer px-3.5 py-2.5 text-sm text-layer-foreground placeholder:text-muted-foreground-1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50">
+        </div>
+        <fieldset>
+          <legend class="mb-1.5 block text-sm font-medium">Skema penelitian</legend>
+          <div id="skema-list" class="space-y-2" role="radiogroup" aria-label="Skema penelitian"><p class="text-sm text-muted-foreground-1">Memuat skema...</p></div>
+        </fieldset>
+        <div>
+          <label for="invite_code" class="mb-1.5 block text-sm font-medium">Kode undangan <span class="font-normal text-muted-foreground-1">(opsional)</span></label>
+          <input id="invite_code" name="invite_code" type="text" autocomplete="off" autocapitalize="characters" class="block w-full rounded-lg border border-line-3 bg-layer px-3.5 py-2.5 text-sm text-layer-foreground placeholder:text-muted-foreground-1 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50 uppercase">
+        </div>
+        <button id="submit" type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-focus focus:ring-offset-2 disabled:opacity-50">Daftar</button>
+      </form>
+    </div>
+    <p class="mt-6 text-center text-sm text-muted-foreground-1">Sudah punya akun? <a href="/login/" class="font-medium text-primary-700 hover:underline dark:text-primary-300">Masuk</a></p>
+  </main>
+  <script type="module" src="/assets/js/pages/register.js"></script>
+</body>
+</html>

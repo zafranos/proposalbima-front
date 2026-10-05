@@ -11,7 +11,7 @@ import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statS
 import { join, extname } from "node:path";
 
 const OUT = "dist";
-const SKIP = new Set(["node_modules", OUT, ".git", ".github", "scripts"]);
+const SKIP = new Set(["node_modules", OUT, ".git", ".github", "scripts", "tests", "partials", ".tmp"]);
 
 let origin = (process.env.PDK_API_ORIGIN || "").trim().replace(/\/+$/, "");
 if (!origin) {
@@ -25,6 +25,11 @@ if (!/^https?:\/\/[^\s/]+$/.test(origin)) {
   console.error(`PDK_API_ORIGIN harus berupa origin tanpa path, bukan: ${origin}`);
   process.exit(1);
 }
+
+// Bagian <head> bersama (CSP, tema, CSS) disisipkan pada penanda di tiap halaman,
+// supaya CSP hanya ditulis di satu tempat.
+const HEAD_MARKER = "<!--@head-->";
+const headPartial = readFileSync("partials/head.html", "utf8").trimEnd();
 
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
@@ -42,7 +47,9 @@ function walk(dir, rel = "") {
       const dest = join(OUT, r);
       mkdirSync(join(dest, ".."), { recursive: true });
       if ([".html", ".js"].includes(extname(name))) {
-        writeFileSync(dest, readFileSync(path, "utf8").replaceAll("__API_ORIGIN__", origin));
+        let text = readFileSync(path, "utf8");
+        if (name.endsWith(".html")) text = text.replaceAll(HEAD_MARKER, headPartial);
+        writeFileSync(dest, text.replaceAll("__API_ORIGIN__", origin));
       } else {
         cpSync(path, dest);
       }

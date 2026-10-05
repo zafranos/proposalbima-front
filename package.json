@@ -9,11 +9,16 @@
     "build:css": "tailwindcss -i assets/css/input.css -o dist/assets/css/app.css --minify",
     "dev": "npm run build && node scripts/serve.mjs",
     "serve": "node scripts/serve.mjs",
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "test:e2e": "node tests/e2e/run.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@fontsource-variable/inter": "^5.2.0",
     "@tailwindcss/cli": "^4.3.3",
+    "@tailwindcss/typography": "^0.5.20",
+    "axe-core": "^4.13.0",
+    "playwright-core": "^1.63.0",
     "preline": "^5.0.0",
     "tailwindcss": "^4.3.3"
   }

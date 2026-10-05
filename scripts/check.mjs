@@ -34,7 +34,8 @@ for (const f of htmlFiles) {
   else {
     if (/unsafe-inline|unsafe-eval/.test(csp[1])) problems.push(`${f}: CSP memuat unsafe-*`);
     if (!/script-src 'self'/.test(csp[1])) problems.push(`${f}: CSP tanpa script-src 'self'`);
-    if (/__API_ORIGIN__/.test(html)) problems.push(`${f}: penanda __API_ORIGIN__ belum diganti`);
+    if (html.includes("<!--@head-->")) problems.push(`${f}: penanda <!--@head--> belum diganti`);
+  if (/__API_ORIGIN__/.test(html)) problems.push(`${f}: penanda __API_ORIGIN__ belum diganti`);
   }
 }
 if (problems.length) {

@@ -31,21 +31,11 @@ if (session.isLoggedIn()) {
   mount(document.getElementById("cta-bottom"), lanjut("btn btn-lg bg-white text-primary-900 hover:bg-primary-50"));
 }
 
-// Kartu skema dan sumber aturan diambil dari API publik supaya selalu sama dengan isi yang sebenarnya. Isi statis di HTML tetap sebagai cadangan bila API tak terjangkau.
-const IKON = { dasar: "flask", terapan: "wrench" };
-async function loadSkema() {
+// Acuan aturan diambil dari API publik supaya selalu sama dengan materi yang sebenarnya disajikan.
+// Teks statis di HTML tetap menjadi cadangan bila API tak terjangkau.
+async function loadInfoMateri() {
   try {
-    const res = await api.get("/api/skema", { noFollow: true });
-    const cards = document.getElementById("skema-cards");
-    if (cards && Array.isArray(res.skema) && res.skema.length) {
-      mount(cards, res.skema.map((s) =>
-        h("article", { class: "card card-pad flex flex-col" },
-          h("span", { class: "grid size-12 place-items-center rounded-xl bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-300" }, icon(IKON[s.slug] || "layers", "size-6")),
-          h("h3", { class: "mt-6 font-display text-3xl font-medium", text: s.judul }),
-          h("p", { class: "mt-3 flex-1 text-[15px] leading-7 text-muted-foreground-1", text: s.ringkasan }),
-          h("p", { class: "mt-4 flex items-center gap-2 text-sm font-medium" }, icon("list-checks", "size-4 text-primary-700 dark:text-primary-300"), `${s.jumlah_modul_alur} modul alur`),
-          h("a", { href: api.withBase(`/register/?skema=${encodeURIComponent(s.slug)}`), class: "btn btn-outline mt-6 self-start" }, "Daftar dengan skema ini", icon("arrow-right")))));
-    }
+    const res = await api.get("/api/materi", { noFollow: true });
     const sumber = res.content_version && res.content_version.sumber;
     if (sumber) {
       const tgl = formatDate(res.content_version.tanggal);
@@ -54,4 +44,4 @@ async function loadSkema() {
   } catch { /* tanpa API: isi statis tetap tampil */ }
 }
 
-await Promise.all([refreshLanding, loadSkema()]);
+await Promise.all([refreshLanding, loadInfoMateri()]);

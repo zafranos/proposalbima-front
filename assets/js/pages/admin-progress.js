@@ -2,11 +2,11 @@ import "../common.js";
 import * as api from "../api.js";
 import { badge, formatDateTime, h, mount } from "../ui.js";
 import { disposeChart, makeChart } from "../admin/charts.js";
-import { CARD, INPUT, avatar, debounce, emptyState, errorState, field, link, loadSkema, loadingState, orDash, readQuery, select, startAdmin, table, writeQuery } from "../admin/kit.js";
+import { CARD, INPUT, avatar, debounce, emptyState, errorState, field, link, loadingState, orDash, readQuery, startAdmin, table, writeQuery } from "../admin/kit.js";
 import { renderPager } from "../admin/pager.js";
 
 // Semua const yang dipakai fungsi di bawah dideklarasikan SEBELUM `await` tingkat modul.
-const DEFAULTS = { skema: "", q: "", page: "1" };
+const DEFAULTS = { q: "", page: "1" };
 const STATUS = { pending: ["Menunggu", "pending"], trial: ["Trial", "trial"], approved: ["Disetujui", "ok"] };
 const trunc = (s, n = 34) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 const query = readQuery(DEFAULTS);
@@ -17,32 +17,23 @@ const list = document.getElementById("list");
 const pager = document.getElementById("pager");
 let seq = 0;
 let funnelChart = null;
-let defaultSkema = ""; // skema pertama: tidak perlu tampil di URL
 
 if (await startAdmin("progres")) {
-  let skema = [];
-  try { skema = await loadSkema(); } catch { /* tanpa pilihan, backend memakai skema pertama */ }
-  if (skema.length) {
-    defaultSkema = skema[0].slug;
-    if (!skema.some((s) => s.slug === query.skema)) query.skema = defaultSkema;
-  }
-  const skemaSel = select(skema.map((s) => [s.slug, s.judul]), query.skema);
   const qInput = h("input", { type: "search", class: INPUT, value: query.q, autocomplete: "off", placeholder: "Nama atau email" });
   mount(document.getElementById("filters"),
     h("form", { role: "search", class: "grid gap-3 sm:grid-cols-2 lg:max-w-xl", on: { submit: (e) => e.preventDefault() } },
-      field("f-skema", "Skema", skemaSel), field("f-q", "Cari peserta", qInput)));
+      field("f-q", "Cari peserta", qInput)));
   const reload = () => { query.page = "1"; load(); };
-  skemaSel.addEventListener("change", () => { query.skema = skemaSel.value; reload(); });
   qInput.addEventListener("input", debounce(() => { query.q = qInput.value.trim(); reload(); }));
   await load();
 }
 
 async function load() {
   const mine = ++seq;
-  writeQuery(query, { ...DEFAULTS, skema: defaultSkema });
+  writeQuery(query, DEFAULTS);
   mount(state, loadingState());
   const p = new URLSearchParams({ limit: "20", page: query.page });
-  for (const k of ["skema", "q"]) if (query[k]) p.set(k, query[k]);
+  if (query.q) p.set("q", query.q);
   try {
     const res = await api.get("/admin/progress?" + p);
     if (mine !== seq) return;
@@ -78,7 +69,7 @@ function render(res) {
   }
 
   if (!res.peserta.length) {
-    mount(list, emptyState("Belum ada peserta yang cocok pada skema ini."));
+    mount(list, emptyState("Belum ada peserta yang cocok."));
     mount(pager);
     return;
   }

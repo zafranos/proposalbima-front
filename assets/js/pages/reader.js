@@ -50,7 +50,7 @@ async function main() {
       return;
     }
     if (err.status === 403) return showMessage("Modul ini terkunci", err.message, [["Lihat status akun", "/pending-approval/"]]);
-    if (err.status === 404) return showMessage("Modul tidak ditemukan", "Modul yang Anda buka tidak ada untuk skema ini.", [["Ke Beranda", "/modul/?slug=beranda"]]);
+    if (err.status === 404) return showMessage("Modul tidak ditemukan", "Modul yang Anda buka tidak ada.", [["Ke Beranda", "/modul/?slug=beranda"]]);
     return showMessage("Tidak dapat memuat modul", err.message);
   }
   paintModul(modul);
@@ -76,8 +76,6 @@ function paintUser(user) {
 }
 
 function paintTopbar() {
-  $("skema-name").textContent = `Skema ${home.skema.judul}`;
-  $("skema-name-side").textContent = `Skema ${home.skema.judul}`;
   const box = $("akses-badge");
   if (home.akses === "preview") {
     mount(box, badge(home.trial && home.trial.habis ? "Trial berakhir: mode pratinjau" : "Mode pratinjau", "pending"));
@@ -109,7 +107,7 @@ function paintSidebar() {
   }));
 }
 
-// Judul modul berbentuk "Fase 2: State of the art..." atau "A. Aturan ...": kode di depan dijadikan
+// Judul modul berbentuk "Modul 3: Menyusun pustaka" atau "A. Aturan ...": kode di depan dijadikan
 // label kecil dan sisanya judul, agar daftar mudah dipindai.
 function splitTitle(judul) {
   const m = /^([^:]{1,14}):\s+(.+)$/.exec(judul) || /^([A-D])\.\s+(.+)$/.exec(judul);

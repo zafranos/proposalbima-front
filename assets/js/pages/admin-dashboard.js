@@ -2,7 +2,7 @@ import "../common.js";
 import * as api from "../api.js";
 import { formatDateShort, h, icon, mount } from "../ui.js";
 import { makeChart } from "../admin/charts.js";
-import { BTN, BTN_PRIMARY, CARD, avatar, errorState, link, loadSkema, loadingState, orDash, skemaTitle, startAdmin, table } from "../admin/kit.js";
+import { BTN, BTN_PRIMARY, CARD, avatar, errorState, link, loadingState, orDash, startAdmin, table } from "../admin/kit.js";
 
 const state = document.getElementById("state");
 const content = document.getElementById("content");
@@ -21,10 +21,10 @@ if (await startAdmin("dasbor")) await load();
 async function load() {
   mount(state, loadingState());
   try {
-    const [d, skema, terbaru] = await Promise.all([api.get("/admin/dashboard"), loadSkema(), api.get("/admin/users?limit=5")]);
+    const [d, terbaru] = await Promise.all([api.get("/admin/dashboard"), api.get("/admin/users?limit=5")]);
     mount(state);
     content.classList.remove("hidden");
-    render(d, skema, terbaru.users);
+    render(d, terbaru.users);
   } catch (e) {
     mount(state, errorState(e.message, load));
   }
@@ -55,12 +55,11 @@ function chartBox(title, label) {
   return { canvas, node: h("div", { class: `${CARD} min-w-0 p-5` }, h("h3", { class: "mb-3 text-sm font-semibold", text: title }), h("div", { class: "h-56" }, canvas)) };
 }
 
-function render(d, skema, terbaru) {
+function render(d, terbaru) {
   const u = d.users, e = d.enrollments, k = d.kode_undangan;
-  const perSkema = d.per_skema || [];
 
   const cUsers = chartBox("Akun", `Akun aktif ${u.aktif}, nonaktif ${u.nonaktif}`);
-  const cEnroll = chartBox("Status pendaftaran per skema", "Jumlah pendaftaran menunggu, trial, dan disetujui per skema; angkanya ada di tabel di bawah grafik.");
+  const cEnroll = chartBox("Status pendaftaran", "Jumlah pendaftaran menunggu persetujuan, trial, dan disetujui; angkanya juga ada di kartu di atas.");
 
   mount(content,
     section("Perlu perhatian",
@@ -78,11 +77,6 @@ function render(d, skema, terbaru) {
         stat("Pendaftar 7 hari", d.pendaftar_7_hari, { ico: "trending-up", tone: "neutral" }))),
     section("Ringkasan visual",
       h("div", { class: "grid gap-4 md:grid-cols-2 xl:grid-cols-3" }, cEnroll.node, cUsers.node, kodeCard(k))),
-    section("Pendaftaran per skema",
-      perSkema.length
-        ? table("Pendaftaran per skema", ["Skema", "Menunggu", "Trial", "Disetujui"],
-          perSkema.map((r) => [skemaTitle(skema, r.skema), String(r.pending), String(r.trial), String(r.approved)]))
-        : h("p", { class: "text-sm text-muted-foreground-1", text: "Belum ada pendaftaran." })),
     section("Pendaftar terbaru",
       terbaru.length
         ? table("Pendaftar terbaru", ["Nama", "Afiliasi", "Terdaftar"],
@@ -94,15 +88,15 @@ function render(d, skema, terbaru) {
       h("a", { href: api.withBase("/admin/enrollments/?status=pending"), class: BTN_PRIMARY }, "Tinjau pendaftar menunggu", icon("arrow-right")),
       h("a", { href: api.withBase("/admin/invite-codes/"), class: "btn btn-outline" }, "Kelola kode undangan")));
 
-  const labels = perSkema.map((r) => skemaTitle(skema, r.skema));
   makeChart(cEnroll.canvas, (t) => ({
     type: "bar",
-    data: { labels, datasets: [
-      { label: "Menunggu", data: perSkema.map((r) => r.pending), backgroundColor: t.c.pending, borderRadius: 4 },
-      { label: "Trial", data: perSkema.map((r) => r.trial), backgroundColor: t.c.trial, borderRadius: 4 },
-      { label: "Disetujui", data: perSkema.map((r) => r.approved), backgroundColor: t.c.approved, borderRadius: 4 },
-    ] },
-    options: { scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } } },
+    data: { labels: ["Menunggu", "Trial", "Disetujui"], datasets: [{
+      label: "Pendaftaran",
+      data: [e.pending, e.trial_aktif + e.trial_habis, e.disetujui],
+      backgroundColor: [t.c.pending, t.c.trial, t.c.approved],
+      borderRadius: 4,
+    }] },
+    options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } } },
   }));
   makeChart(cUsers.canvas, (t) => ({
     type: "doughnut",

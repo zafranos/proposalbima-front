@@ -55,8 +55,11 @@ export const SECTIONS = [
     ],
   },
   {
-    id: "skema", title: "Skema", note: "Kartu skema diambil dari data skema di server, bukan dari sini.",
-    fields: [{ path: "skema.title", label: "Judul bagian", max: 80 }],
+    id: "skema", title: "Cakupan skema", note: "Dua kotak di bawahnya menyebut skema yang tercakup; isinya tetap.",
+    fields: [
+      { path: "skema.title", label: "Judul bagian", max: 80 },
+      { path: "skema.text", label: "Uraian", max: 400, rows: 4 },
+    ],
   },
   {
     id: "fitur", title: "Yang Anda dapatkan", note: "Kotak ketiga memuat daftar acuan aturan dari server, jadi hanya judulnya yang dapat diubah.",

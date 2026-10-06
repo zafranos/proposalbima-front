@@ -10,7 +10,7 @@ const DEFAULT_TRIAL = 7;
 export function approve(e, nama) {
   return confirmDialog({
     title: "Setujui pendaftaran?",
-    message: `${nama} akan mendapat akses penuh ke skema ${e.skema_judul} tanpa batas waktu.`,
+    message: `${nama} akan mendapat akses penuh tanpa batas waktu.`,
     confirmLabel: "Setujui",
     onConfirm: async () => {
       await api.post(`/admin/enrollments/${encodeURIComponent(e.id)}/approve`);
@@ -22,7 +22,7 @@ export function approve(e, nama) {
 export function revoke(e, nama) {
   return confirmDialog({
     title: "Cabut akses?",
-    message: `Pendaftaran ${nama} pada skema ${e.skema_judul} kembali ke menunggu persetujuan, sehingga hanya pratinjau yang terbuka.`,
+    message: `Pendaftaran ${nama} kembali ke menunggu persetujuan, sehingga hanya pratinjau yang terbuka.`,
     confirmLabel: "Cabut akses",
     danger: true,
     onConfirm: async () => {
@@ -36,7 +36,7 @@ export function setTrial(e, nama) {
   const days = h("input", { type: "number", min: "1", max: "365", step: "1", value: String(DEFAULT_TRIAL), inputmode: "numeric", class: INPUT });
   return modal({
     title: "Atur trial",
-    description: `${nama} mendapat akses penuh ke skema ${e.skema_judul} selama beberapa hari, dihitung mulai sekarang.`,
+    description: `${nama} mendapat akses penuh selama beberapa hari, dihitung mulai sekarang.`,
     content: field("trial-days", "Lama trial (hari)", days, "Bilangan bulat 1 sampai 365."),
     confirmLabel: "Atur trial",
     onSubmit: async () => {

@@ -2,27 +2,23 @@
 <html lang="id">
 <head>
 <!--@head-->
-<title>Tambah skema | Proposal DIKTI</title>
+<title>Daftar pelatihan | Proposal DIKTI</title>
 </head>
 <body class="bg-background text-foreground antialiased">
   <!--@include app-bar-->
   <main id="main" class="mx-auto w-full max-w-lg px-4 pb-16 pt-10 sm:pt-14">
     <div class="animate-rise">
-          <h1 class="font-display text-4xl font-medium tracking-tight">Tambah skema</h1>
-          <p id="intro" class="mt-2 text-[15px] text-muted-foreground-1">Pilih skema yang belum Anda ikuti. Kode undangan langsung membuka akses penuh.</p>
+          <h1 class="font-display text-4xl font-medium tracking-tight">Daftar pelatihan</h1>
+          <p id="intro" class="mt-2 text-[15px] text-muted-foreground-1">Akun Anda belum terdaftar di pelatihan ini. Kode undangan langsung membuka akses penuh; tanpa kode, pendaftaran menunggu persetujuan admin.</p>
           <form id="form" method="post" class="card card-pad mt-8 space-y-5" novalidate>
             <div id="form-error" role="alert" class="alert alert-error hidden"></div>
-            <fieldset>
-              <legend class="label">Skema</legend>
-              <div id="skema-list" class="grid gap-3" role="radiogroup" aria-label="Skema"><p class="text-sm text-muted-foreground-1">Memuat skema...</p></div>
-            </fieldset>
             <div>
               <label for="invite_code" class="label">Kode undangan <span class="font-normal text-muted-foreground-1">(opsional)</span></label>
               <input id="invite_code" name="invite_code" type="text" autocomplete="off" autocapitalize="characters" class="input">
             </div>
-            <button id="submit" type="submit" class="btn btn-primary btn-lg w-full">Tambah skema</button>
+            <button id="submit" type="submit" class="btn btn-primary btn-lg w-full">Daftar</button>
           </form>
-          <p class="mt-6 text-center text-sm"><a href="/select-skema/" class="link">Kembali</a></p>
+          <p class="mt-6 text-center text-sm"><a href="/profile/" class="link">Kembali ke profil</a></p>
     </div>
   </main>
   <script type="module" src="/assets/js/pages/enroll.js"></script>

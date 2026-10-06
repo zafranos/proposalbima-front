@@ -1,4 +1,4 @@
-// Pembantu bersama halaman admin: kelas gaya, tabel, bidang formulir, status di URL, dan daftar skema.
+// Pembantu bersama halaman admin: kelas gaya, tabel, bidang formulir, dan status di URL.
 // Semua DOM dibangun dengan h() (createElement/textContent), tanpa innerHTML.
 import * as api from "../api.js";
 import * as auth from "../auth.js";
@@ -99,17 +99,6 @@ export function debounce(fn, ms = 300) {
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
-
-// ── Daftar skema (publik; dipakai untuk pilihan dan judul) ──
-let skemaCache;
-export async function loadSkema() {
-  if (!skemaCache) {
-    const res = await api.get("/api/skema");
-    skemaCache = res.skema.map((s) => ({ slug: s.slug, judul: s.judul }));
-  }
-  return skemaCache;
-}
-export const skemaTitle = (list, slug) => (list.find((s) => s.slug === slug) || {}).judul || slug;
 
 // Tautan internal bawaan situs (awalan situs ditambahkan di sini).
 export function link(path, text, cls = LINK) {

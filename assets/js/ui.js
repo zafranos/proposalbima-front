@@ -196,7 +196,7 @@ export function badge(text, tone = "neutral") {
   return h("span", { class: BADGE[tone] || BADGE.neutral, text });
 }
 
-// Lencana untuk satu enrollment (bentuk dari backend: status, trial_expired, trial_days_left, skema_judul).
+// Lencana untuk satu pendaftaran (bentuk dari backend: status, trial_expired, trial_days_left).
 export function enrollmentBadge(e) {
   if (e.status === "approved") return badge("Disetujui", "ok");
   if (e.status === "trial" && !e.trial_expired) return badge(`Trial, sisa ${e.trial_days_left} hari`, "trial");

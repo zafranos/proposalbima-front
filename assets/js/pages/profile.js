@@ -32,9 +32,13 @@ if (auth.requireLogin()) {
     form.name.value = me.user.name || "";
     form.affiliation.value = me.user.affiliation || "";
     document.getElementById("enrollments").replaceChildren(
-      ...me.enrollments.map((e) =>
-        h("li", { class: "card flex flex-wrap items-center justify-between gap-3 px-5 py-4" },
-          h("span", { class: "font-display text-xl font-medium", text: e.skema_judul }), enrollmentBadge(e))),
+      ...(me.enrollments.length
+        ? me.enrollments.map((e) =>
+          h("li", { class: "card flex flex-wrap items-center justify-between gap-3 px-5 py-4" },
+            h("span", { class: "font-display text-xl font-medium", text: "Pelatihan penyusunan proposal" }), enrollmentBadge(e)))
+        : [h("li", { class: "card px-5 py-4 text-[15px] text-muted-foreground-1" },
+            h("span", { text: "Akun Anda belum terdaftar. " }),
+            h("a", { href: api.withBase("/enroll/"), class: "link", text: "Daftar sekarang" }))]),
     );
   } catch (err) {
     showFormError(errBox, err.message);

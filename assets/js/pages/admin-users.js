@@ -66,7 +66,7 @@ function render(res) {
         u.is_active ? badge("Aktif", "ok") : badge("Nonaktif", "danger"),
         h("div", { class: "text-xs text-muted-foreground-1", text: (u.auth_methods || []).map((m) => METODE[m] || m).join(", ") })),
       u.enrollments.length
-        ? h("div", { class: "space-y-1" }, u.enrollments.map((e) => h("div", { class: "flex flex-wrap items-center gap-1.5" }, h("span", { text: e.skema_judul }), enrollmentBadge(e))))
+        ? h("div", { class: "space-y-1" }, u.enrollments.map((e) => h("div", { class: "flex flex-wrap items-center gap-1.5" }, enrollmentBadge(e))))
         : "—",
       h("span", { class: "whitespace-nowrap", text: formatDateShort(u.created_at) }),
     ])));

@@ -89,28 +89,27 @@ function noIssues() { assert.deepEqual(issues.splice(0), [], "tidak boleh ada pe
 
 async function adminToken() { return (await login(ADMIN.email, ADMIN.password)).token; }
 
-async function approve(email, skema) {
+async function approve(email) {
   const t = await adminToken();
-  const list = await api(`/admin/enrollments?q=${encodeURIComponent(email)}&skema=${skema}`, { token: t });
+  const list = await api(`/admin/enrollments?q=${encodeURIComponent(email)}`, { token: t });
   const e = list.data.enrollments[0].enrollment;
   const r = await api(`/admin/enrollments/${e.id}/approve`, { method: "POST", token: t });
   assert.equal(r.status, 200);
 }
 
-async function registerViaUI(page, { email, skema, code = "" }) {
+async function registerViaUI(page, { email, code = "" }) {
   await page.goto(WEB + "/register/");
-  await page.getByRole("radio", { name: new RegExp("^" + skema) }).waitFor();
+  await page.locator("#name").waitFor();
   await page.fill("#name", "Peserta E2E");
   await page.fill("#email", email);
   await page.fill("#password", PASSWORD);
   await page.fill("#affiliation", "Universitas Uji");
-  await page.getByRole("radio", { name: new RegExp("^" + skema) }).check();
   if (code) await page.fill("#invite_code", code);
   await page.click("#submit");
 }
 
 // Mengubah data pengguna langsung di MongoDB uji (container Docker) untuk menciptakan keadaan
-// yang tak bisa dibuat lewat API, mis. akun tanpa afiliasi atau tanpa skema terpilih.
+// yang tak bisa dibuat lewat API, mis. akun tanpa afiliasi.
 function mongoEval(js) {
   return execFileSync("docker", ["exec", "pdk-mongo-test", "mongosh", "--quiet", "--eval", `db.getSiblingDB("${DB}").${js}`], { encoding: "utf8" });
 }
@@ -135,10 +134,10 @@ test("daftar, menunggu persetujuan, pratinjau, modul terkunci", async () => {
   const { context, page } = await newPage();
   await page.setViewportSize({ width: 375, height: 800 });
   await page.goto(WEB + "/register/");
-  await page.getByRole("radio").first().waitFor();
+  await page.locator("#name").waitFor();
   await noPageOverflow(page, "daftar di 375px");
   await page.setViewportSize({ width: 1280, height: 900 });
-  await registerViaUI(page, { email: userA.email, skema: "Dasar" });
+  await registerViaUI(page, { email: userA.email });
   await page.waitForURL("**/pending-approval/");
   assert.match(await page.locator("#title").textContent(), /Menunggu persetujuan/);
   await shot(page, "01-menunggu");
@@ -165,7 +164,7 @@ test("daftar, menunggu persetujuan, pratinjau, modul terkunci", async () => {
 });
 
 test("persetujuan admin membuka akses penuh; kartu disalin utuh; progres tersimpan", async () => {
-  await approve(userA.email, "dasar");
+  await approve(userA.email);
   const { context, page } = await authed(userA);
   await page.goto(WEB + "/modul/?slug=modul-2");
   await page.locator("[data-card]").first().waitFor();
@@ -266,7 +265,7 @@ test("ponsel: sidebar menjadi laci yang bisa dibuka dan ditutup", async () => {
   await until(async () => !(await onScreen()), "laci keluar dari layar");
   // Jalan ke profil tersedia di ponsel (tombol nama pengguna tersembunyi di bawah lebar sm).
   await toggle.click();
-  assert.ok(await sidebar.getByRole("link", { name: /Profil dan skema/ }).isVisible(), "tautan profil di laci ponsel");
+  assert.ok(await sidebar.getByRole("link", { name: /Profil/ }).isVisible(), "tautan profil di laci ponsel");
   await page.keyboard.press("Escape");
   await noLeakyText(page, "pembaca ponsel");
   noIssues();
@@ -275,10 +274,10 @@ test("ponsel: sidebar menjadi laci yang bisa dibuka dan ditutup", async () => {
 
 test("Terapan: daftar dengan kode langsung disetujui; materi satu bagian tanpa tab", async () => {
   const admin = await adminToken();
-  const code = (await api("/admin/invite-codes", { method: "POST", token: admin, body: { skema: "terapan" } })).data.kode.code;
+  const code = (await api("/admin/invite-codes", { method: "POST", token: admin, body: {} })).data.kode.code;
   const email = `terapan-${uid()}@example.test`;
   const { context, page } = await newPage();
-  await registerViaUI(page, { email, skema: "Terapan", code });
+  await registerViaUI(page, { email, code });
   await page.waitForURL("**/modul/?slug=beranda");
   await page.locator("#content h1").waitFor();
   // kode undangan = persetujuan: akses penuh sejak detik pertama, tanpa masa trial dan tanpa halaman menunggu
@@ -292,10 +291,10 @@ test("Terapan: daftar dengan kode langsung disetujui; materi satu bagian tanpa t
   await page.goto(WEB + "/modul/?slug=modul-2");
   await page.locator("[data-card]").first().waitFor();
   await noLeakyText(page, "modul-2 terapan");
-  // Satu naskah modul dipakai kedua skema: tidak ada tab varian, dan ketentuan khusus skema
+  // Satu naskah modul untuk semua peserta: tidak ada tab, dan ketentuan khusus skema
   // ada di dalam modul yang sama.
-  assert.equal(await page.getByRole("tab").count(), 0, "materi tidak bercabang per skema");
-  assert.equal(await page.locator("#panel-dasar").count(), 1, "hanya satu panel isi");
+  assert.equal(await page.getByRole("tab").count(), 0, "materi tidak bercabang");
+  assert.equal(await page.locator("#panel-utama").count(), 1, "hanya satu panel isi");
   assert.equal(await page.locator("#content h2", { hasText: "Yang perlu diperhatikan menurut skema" }).count(), 1);
   await shot(page, "05-terapan-modul");
   noIssues();
@@ -390,23 +389,33 @@ test("profil: ubah nama, tersimpan dan tampil di bilah atas", async () => {
   await context.close();
 });
 
-test("halaman skema: pilih dan tambah skema", async () => {
-  const { context, page } = await authed(userA);
-  await page.goto(WEB + "/select-skema/");
-  await page.getByRole("button", { name: "Lanjutkan" }).waitFor();
-  await page.getByRole("button", { name: "Lanjutkan" }).click();
-  await page.waitForURL("**/modul/?slug=beranda");
+test("halaman daftar pelatihan: akun tanpa pendaftaran dapat mendaftar dengan kode", async () => {
+  const admin = await adminToken();
+  const code = (await api("/admin/invite-codes", { method: "POST", token: admin, body: {} })).data.kode.code;
+  const email = `tanpa-daftar-${uid()}@example.test`;
+  const { context, page } = await newPage();
+  await registerViaUI(page, { email });
+  await page.waitForURL("**/pending-approval/");
+  // Akun yang sudah terdaftar diberi tahu, bukan diminta mendaftar lagi.
   await page.goto(WEB + "/enroll/");
-  await page.getByRole("radio", { name: /^Terapan/ }).check();
+  await until(async () => /sudah terdaftar/i.test(await page.locator("#intro").textContent()), "pesan sudah terdaftar");
+  assert.equal(await page.locator("#form").isHidden(), true, "formulir disembunyikan bila sudah terdaftar");
+
+  // Akun tanpa pendaftaran (mis. hasil seed-admin) mendaftar sendiri; kode membuka akses penuh.
+  mongoEval(`enrollments.deleteMany({user_id: db.getSiblingDB("${DB}").users.findOne({email:"${email}"})._id})`);
+  await page.goto(WEB + "/modul/?slug=beranda");
+  await page.waitForURL("**/enroll/");
+  await page.fill("#invite_code", code);
   await page.click("#submit");
-  await page.waitForURL("**/pending-approval/**");
+  await page.waitForURL("**/modul/?slug=beranda");
+  assert.equal(await page.locator("#akses-badge").textContent(), "Akses penuh");
   noIssues();
   await context.close();
 });
 
-test("rantai pengalihan: profil belum lengkap, skema belum dipilih, lalu pulih", async () => {
+test("rantai pengalihan: profil belum lengkap, lalu pulih", async () => {
   const email = `rantai-${uid()}@example.test`;
-  const reg = await api("/register", { method: "POST", body: { name: "Rantai Uji", email, password: PASSWORD, affiliation: "Univ Uji", skema: "dasar" } });
+  const reg = await api("/register", { method: "POST", body: { name: "Rantai Uji", email, password: PASSWORD, affiliation: "Univ Uji" } });
   assert.equal(reg.status, 201);
   mongoEval(`users.updateOne({email:"${email}"},{$set:{affiliation:""}})`);
 
@@ -421,31 +430,22 @@ test("rantai pengalihan: profil belum lengkap, skema belum dipilih, lalu pulih",
   await page.click("#submit");
   await page.waitForURL("**/pending-approval/");
 
-  mongoEval(`users.updateOne({email:"${email}"},{$unset:{selected_skema:""}})`);
-  await page.goto(WEB + "/modul/?slug=beranda");
-  await page.waitForURL("**/select-skema/");
-  await page.getByRole("button", { name: "Pilih" }).click();
-  await page.waitForURL("**/pending-approval/");
   await shot(page, "09-rantai-pulih");
   noIssues();
   await context.close();
 });
 
-test("daftar: Enter sebelum daftar skema termuat tidak mengirim form ke URL (kata sandi tidak bocor)", async () => {
+test("daftar: Enter mengirim lewat JS, bukan sebagai GET yang membocorkan kata sandi ke URL", async () => {
   const { context, page } = await newPage();
-  // Backend yang baru bangun menjawab lambat: tahan jawaban daftar skema 2,5 detik.
-  await context.route("**/api/skema", async (route) => { await new Promise((r) => setTimeout(r, 2500)); await route.continue(); });
   await page.goto(WEB + "/register/", { waitUntil: "domcontentloaded" });
   await page.fill("#name", "Peserta Cepat");
   await page.fill("#email", `cepat-${uid()}@example.test`);
   await page.fill("#password", "rahasia-cepat-123");
   await page.fill("#affiliation", "Universitas Uji");
   await page.press("#password", "Enter");
-  await page.waitForTimeout(600);
+  await page.waitForURL("**/pending-approval/");
   assert.equal(new URL(page.url()).search, "", "form tidak boleh dikirim secara bawaan (GET) ke URL");
   assert.doesNotMatch(page.url(), /password|rahasia/i);
-  assert.match(await page.locator("#form-error").textContent(), /masih dimuat/i, "pengguna diberi tahu, bukan dibiarkan");
-  await page.getByRole("radio", { name: /^Dasar/ }).waitFor({ timeout: 8000 }); // daftar akhirnya termuat
   noIssues();
   await context.close();
 });
@@ -525,14 +525,14 @@ async function canvasDrawn(page, index = 0) {
   }, index);
 }
 
-async function enrollmentOf(email, skema = "dasar") {
-  const r = await api(`/admin/enrollments?q=${encodeURIComponent(email)}&skema=${skema}`, { token: await adminToken() });
+async function enrollmentOf(email) {
+  const r = await api(`/admin/enrollments?q=${encodeURIComponent(email)}`, { token: await adminToken() });
   return r.data.enrollments[0]?.enrollment;
 }
 
 async function registerAPI(label) {
   const email = `${label}-${uid()}@example.test`;
-  const r = await api("/register", { method: "POST", body: { name: `Peserta ${label}`, email, password: PASSWORD, affiliation: "Univ Uji", skema: "dasar" } });
+  const r = await api("/register", { method: "POST", body: { name: `Peserta ${label}`, email, password: PASSWORD, affiliation: "Univ Uji" } });
   assert.ok(r.status < 300, "daftar lewat API " + email);
   return { email, token: r.data.token, id: r.data.user.id };
 }
@@ -764,9 +764,9 @@ test("admin: pengguna dicari dan disaring; detail menonaktifkan dan mengubah per
   await context.close();
 });
 
-test("admin: progres per skema memuat corong dan peserta sesuai API", async () => {
+test("admin: progres memuat corong dan peserta sesuai API", async () => {
   const t = await adminToken();
-  const res = (await api("/admin/progress?skema=dasar&limit=50", { token: t })).data;
+  const res = (await api("/admin/progress?limit=50", { token: t })).data;
   const mine = res.peserta.find((p) => p.email === userA.email);
   assert.ok(mine, "userA ada di daftar progres");
   const { context, page } = await authed(ADMIN);
@@ -781,10 +781,6 @@ test("admin: progres per skema memuat corong dan peserta sesuai API", async () =
   await until(() => canvasDrawn(page, 0), "grafik corong tergambar");
   await shot(page, "25-admin-progres-light");
 
-  await page.getByLabel("Skema").selectOption("terapan");
-  const ter = (await api("/admin/progress?skema=terapan&limit=50", { token: t })).data;
-  await until(async () => (await page.getByRole("region", { name: "Corong modul alur" }).locator("tbody tr").count()) === ter.total_alur, "corong berganti ke skema Terapan");
-  assert.ok(new URL(page.url()).searchParams.get("skema") === "terapan", "skema pilihan tersimpan di URL");
   await noLeakyText(page, "progres admin");
   noIssues();
   await context.close();
@@ -799,7 +795,7 @@ const publicLanding = async () => (await api("/api/landing")).data;
 test("landing boleh diindeks dan halaman lain tidak; footer lengkap dengan kredit; tanpa kata gratis", async () => {
   const { context, page } = await newPage();
   await page.goto(WEB + "/");
-  await page.locator("#skema-cards article").first().waitFor();
+  await page.locator("#skema article").first().waitFor();
   assert.match(await page.locator('meta[name="robots"]').getAttribute("content"), /^index, follow/);
   assert.equal(await page.locator('link[rel="canonical"]').count(), 0, "tanpa PDK_SITE_URL canonical tidak dibuat (alamat relatif tidak sah)");
 
@@ -807,7 +803,7 @@ test("landing boleh diindeks dan halaman lain tidak; footer lengkap dengan kredi
   assert.equal(await footer.getByRole("link", { name: "mubaroqadb", exact: true }).getAttribute("href"), "https://github.com/mubaroqadb");
   assert.equal(await footer.getByRole("link", { name: "Akademi Digital Bandung", exact: true }).getAttribute("href"), "https://digitalbdg.ac.id");
   assert.match((await footer.textContent()).replace(/\s+/g, " "), /Dikembangkan oleh mubaroqadb, Akademi Digital Bandung/);
-  for (const [name, href] of [["Cara kerja", "#cara"], ["Alur penyusunan", "#alur"], ["Skema", "#skema"], ["Tanya jawab", "#faq"], ["Masuk", BASE + "/login/"], ["Daftar", BASE + "/register/"]]) {
+  for (const [name, href] of [["Cara kerja", "#cara"], ["Alur penyusunan", "#alur"], ["Cakupan", "#skema"], ["Tanya jawab", "#faq"], ["Masuk", BASE + "/login/"], ["Daftar", BASE + "/register/"]]) {
     assert.equal(await footer.getByRole("link", { name, exact: true }).getAttribute("href"), href, `tautan footer ${name}`);
   }
   assert.match(await footer.textContent(), /Acuan aturan: .+/);
@@ -911,7 +907,7 @@ test("admin: landing disunting, disimpan, diurutkan, konflik ditolak, riwayat di
   assert.equal(await pub1.page.locator("#faq details").nth(5).locator("p").textContent(), "Jawaban uji e2e.");
   assert.equal(await pub1.page.locator("section h2", { hasText: "judul ajakan" }).textContent(), xss, "tanda kurung sudut tampil sebagai teks");
   assert.equal(await pub1.page.locator("section h2 img").count(), 0, "tidak ada elemen yang disisipkan dari teks");
-  assert.equal(await pub1.page.locator("#skema-cards article").count() > 0, true, "kartu skema dari API tetap tampil");
+  assert.equal(await pub1.page.locator("#skema article").count(), 2, "kotak cakupan skema tetap tampil");
   await noLeakyText(pub1.page, "landing tersunting");
   noIssues();
   await pub1.context.close();
@@ -1032,7 +1028,7 @@ test("landing dan editor admin: tampilan terang, gelap, dan ponsel tidak melebar
   for (const [label, opts] of [["terang", { viewport: { width: 1280, height: 900 } }], ["gelap", { viewport: { width: 1280, height: 900 }, colorScheme: "dark" }], ["ponsel", { viewport: { width: 390, height: 800 } }]]) {
     const { context, page } = await newPage(opts);
     await page.goto(WEB + "/");
-    await page.locator("#skema-cards article").first().waitFor();
+    await page.locator("#skema article").first().waitFor();
     await page.waitForLoadState("networkidle");
     await shot(page, `31-landing-atas-${label}`);
     for (const id of sections) {
@@ -1165,7 +1161,7 @@ for (const scheme of ["light", "dark"]) {
   test(`aksesibilitas (axe) tanpa pelanggaran: tema ${scheme}`, async () => {
     const pages = [
       ["/", false], ["/login/", false], ["/register/", false], ["/forgot-password/", false],
-      ["/modul/?slug=beranda", true], ["/modul/?slug=modul-2", true], ["/modul/?slug=aturan-c", true], ["/select-skema/", true], ["/profile/", true],
+      ["/modul/?slug=beranda", true], ["/modul/?slug=modul-2", true], ["/modul/?slug=aturan-c", true], ["/enroll/", true], ["/profile/", true],
     ];
     const problems = [];
     for (const [path, auth] of pages) {
@@ -1173,8 +1169,7 @@ for (const scheme of ["light", "dark"]) {
       await page.goto(WEB + path);
       await page.waitForLoadState("networkidle");
       if (path.startsWith("/modul/")) await page.locator("#content h1, #content h2").first().waitFor();
-      if (path === "/register/") await page.getByRole("radio").first().waitFor();
-      if (path === "/") await page.locator("#skema-cards article").first().waitFor();
+      if (path === "/") await page.locator("#skema article").first().waitFor();
       assert.equal(await page.evaluate(() => document.documentElement.classList.contains("dark")), scheme === "dark", "tema harus mengikuti preferensi sistem");
       if (path === "/modul/?slug=modul-2") await shot(page, `07-modul2-${scheme}`);
       if (path === "/login/") await shot(page, `08-login-${scheme}`);

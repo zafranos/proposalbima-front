@@ -22,7 +22,7 @@ if (auth.requireLogin()) {
     try {
       const res = await api.post("/me/profile", body);
       session.setUser(res.user);
-      api.go(api.safePath(res.redirect) || "/select-skema/");
+      api.go(api.safePath(res.redirect) || "/modul/?slug=beranda");
     } catch (err) {
       showFormError(errBox, err.message);
       setBusy(btn, false);

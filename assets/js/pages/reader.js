@@ -7,7 +7,6 @@ import * as session from "../session.js";
 import { setupDrawer } from "../drawer.js";
 import { badge, formatBytes, formatDate, h, icon, mount, toast } from "../ui.js";
 import { enhanceContent } from "../reader/enhance.js";
-import { renderTabs } from "../reader/tabs.js";
 import { buildToc } from "../reader/toc.js";
 
 const $ = (id) => document.getElementById(id);
@@ -135,52 +134,19 @@ function navItem(m) {
 function paintModul(modul) {
   document.title = `${modul.judul} | Proposal DIKTI`;
   const groupLabel = (GROUPS.find(([g]) => g === modul.grup) || [])[1];
-  const box = $("content");
-  const panels = {};
-  const parts = modul.bagian;
-  for (const b of parts) {
-    const panel = h("div", { class: PROSE });
-    panel.innerHTML = b.html; // HTML dari backend: dirender goldmark tanpa HTML mentah dan dilint saat sinkron
-    enhanceContent(panel, { salinTeks: b.salin_teks, download: (id, nama) => downloadFile(id, nama) });
-    panels[b.kunci] = panel;
-  }
+  const panel = h("div", { id: "panel-isi", class: PROSE });
+  panel.innerHTML = modul.html; // HTML dari backend: dirender goldmark tanpa HTML mentah dan dilint saat sinkron
+  enhanceContent(panel, { salinTeks: modul.salin_teks, download: (id, nama) => downloadFile(id, nama) });
 
-  const wanted = params.get("bagian");
-  const initial = parts.some((b) => b.kunci === wanted) ? wanted : parts[0].kunci;
-  let tabs = null;
-  const showToc = (key) => buildToc(panels[key], $("toc-nav"), $("toc-nav-mobile"));
-  if (parts.length > 1) {
-    tabs = renderTabs(parts, panels, initial, (key) => {
-      const u = new URL(location.href);
-      u.searchParams.set("bagian", key);
-      history.replaceState(null, "", u);
-      showToc(key);
-    });
-  } else {
-    panels[initial].id = "panel-" + initial;
-  }
-
-  const rv = modul.rujukan_varian;
-  mount(box,
+  mount($("content"),
     groupLabel ? h("p", { class: "eyebrow mb-3 flex", text: groupLabel }) : null,
-    rv ? h("aside", { class: "alert alert-info mb-6 flex gap-3", role: "note" },
-      icon("info", "mt-0.5 size-4"),
-      h("p", {}, rv.teks + " ", h("a", { class: "font-medium underline", href: api.withBase(`/modul/?slug=${encodeURIComponent(rv.modul)}&bagian=${encodeURIComponent(rv.bagian)}`), text: "Buka bagian itu" }), ".")) : null,
-    tabs ? tabs.el : null,
-    ...parts.map((b) => panels[b.kunci]),
+    panel,
     downloadsBlock(modul),
     completeBlock(modul),
     pagerBlock(modul),
     h("p", { class: "mt-12 border-t border-line-2 pt-5 text-xs text-muted-foreground-1", text: `Materi per ${formatDate(modul.content_version.tanggal)}. Sumber aturan: ${modul.content_version.sumber}.` }),
   );
-  showToc(initial);
-
-  // Tautan #heading ke bagian yang sedang tersembunyi: pindah tab dulu.
-  if (location.hash && tabs) {
-    const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
-    const owner = target && parts.find((b) => panels[b.kunci].contains(target));
-    if (owner && owner.kunci !== initial) { tabs.select(owner.kunci, true); }
-  }
+  buildToc(panel, $("toc-nav"), $("toc-nav-mobile"));
   if (location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
 }
 

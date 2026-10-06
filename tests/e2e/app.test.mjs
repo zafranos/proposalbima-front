@@ -272,7 +272,7 @@ test("ponsel: sidebar menjadi laci yang bisa dibuka dan ditutup", async () => {
   await context.close();
 });
 
-test("Terapan: daftar dengan kode langsung disetujui; materi satu bagian tanpa tab", async () => {
+test("Terapan: daftar dengan kode langsung disetujui; materi sama untuk semua", async () => {
   const admin = await adminToken();
   const code = (await api("/admin/invite-codes", { method: "POST", token: admin, body: {} })).data.kode.code;
   const email = `terapan-${uid()}@example.test`;
@@ -294,7 +294,7 @@ test("Terapan: daftar dengan kode langsung disetujui; materi satu bagian tanpa t
   // Satu naskah modul untuk semua peserta: tidak ada tab, dan ketentuan khusus skema
   // ada di dalam modul yang sama.
   assert.equal(await page.getByRole("tab").count(), 0, "materi tidak bercabang");
-  assert.equal(await page.locator("#panel-utama").count(), 1, "hanya satu panel isi");
+  assert.equal(await page.locator("#panel-isi").count(), 1, "satu panel isi");
   assert.equal(await page.locator("#content h2", { hasText: "Yang perlu diperhatikan menurut skema" }).count(), 1);
   await shot(page, "05-terapan-modul");
   noIssues();

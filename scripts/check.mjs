@@ -81,7 +81,7 @@ const SITE = (process.env.PDK_SITE_URL || "").trim().replace(/\/+$/, "");
 if (SITE && htmlFiles.includes(LANDING)) {
   const root = SITE + BASE;
   const html = readFileSync(LANDING, "utf8");
-  for (const want of [`<link rel="canonical" href="${root}/">`, `<meta property="og:url" content="${root}/">`, `<meta property="og:image" content="${root}/assets/img/og.png">`]) {
+  for (const want of [`<link rel="canonical" href="${root}/">`, `<meta property="og:url" content="${root}/">`, `<meta property="og:image" content="${root}/assets/img/og.jpg">`]) {
     if (!html.includes(want)) problems.push(`${LANDING}: tidak memuat ${want}`);
   }
   try {

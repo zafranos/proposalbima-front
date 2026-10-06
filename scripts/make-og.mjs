@@ -1,4 +1,4 @@
-// Membuat assets/img/og.png (1200x630, pratinjau tautan di media sosial dan hasil pencarian) dari scripts/og.html
+// Membuat assets/img/og.jpg (1200x630, pratinjau tautan di media sosial dan hasil pencarian) dari scripts/og.html
 // memakai Chrome yang sudah terpasang (playwright-core, tanpa unduhan peramban). Font di-embed sebagai data URI
 // dan gambar ditulis langsung ke assets/img, jadi tidak ada berkas sementara. Jalankan ulang bila tampilan berubah:
 //
@@ -18,8 +18,12 @@ try {
   const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
   await page.setContent(html, { waitUntil: "load" });
   await page.evaluate(() => document.fonts.ready);
-  writeFileSync("assets/img/og.png", await page.screenshot({ type: "png" }));
-  console.log("assets/img/og.png dibuat (1200x630)");
+  // JPEG, bukan PNG: latar bergradien dan berpola titik membuat PNG membengkak sampai 217 KB,
+  // sedangkan pratinjau tautan selalu ditampilkan kecil. Perayap yang lambat lebih sering
+  // menyerah pada gambar berat.
+  const buf = await page.screenshot({ type: "jpeg", quality: 86 });
+  writeFileSync("assets/img/og.jpg", buf);
+  console.log(`assets/img/og.jpg dibuat (1200x630, ${Math.round(buf.length / 1024)} KB)`);
 } finally {
   await browser.close();
 }

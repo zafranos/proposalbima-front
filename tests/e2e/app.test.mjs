@@ -808,10 +808,10 @@ test("landing boleh diindeks dan halaman lain tidak; footer lengkap dengan kredi
   const logos = await page.locator("img.brand-mark").evaluateAll((imgs) => imgs.map((i) => i.complete && i.naturalWidth > 0));
   assert.deepEqual(logos, [true, true], "ikon merek termuat di bilah atas dan footer");
   assert.equal(await page.locator('link[rel="icon"]').getAttribute("href"), BASE + "/assets/img/favicon.png");
-  for (const f of ["favicon.png", "apple-touch-icon.png", "logo-mark.png", "og.png"]) {
+  for (const [f, tipe] of [["favicon.png", "image/png"], ["apple-touch-icon.png", "image/png"], ["logo-mark.png", "image/png"], ["og.jpg", "image/jpeg"]]) {
     const r = await fetch(`${WEB}/assets/img/${f}`);
     assert.equal(r.status, 200, f);
-    assert.equal(r.headers.get("content-type"), "image/png", f);
+    assert.equal(r.headers.get("content-type"), tipe, f);
   }
   assert.equal((await fetch(`${WEB}/assets/img/ZafranOS-logo3.png`)).status, 404, "logo sumber 1 MB tidak diterbitkan");
   assert.ok([400, 404].includes((await fetch(`${WEB}/%`)).status), "alamat berkode persen rusak ditolak, bukan mematikan server");

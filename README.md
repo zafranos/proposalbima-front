@@ -23,7 +23,6 @@ npm run make:og      # gambar pratinjau tautan assets/img/og.png dari scripts/og
 | `PDK_API_ORIGIN` | Origin API backend (bawaan `http://localhost:8080`) |
 | `PDK_BASE_PATH` | Awalan situs, mis. `/nama-repo`; kosong untuk akar domain atau domain kustom |
 | `PDK_REQUIRE_API_ORIGIN` | `1` = build gagal bila origin API kosong |
-| `PDK_ASSISTANT_SRC` | Alamat skrip embed asisten obrolan pihak ketiga; kosong = tidak dipasang (lihat "Asisten obrolan") |
 | `PDK_SITE_URL` | Alamat publik situs tanpa path, mis. `https://contoh.id`. Mengisi canonical, Open Graph, `sitemap.xml`, dan baris `Sitemap` di `robots.txt`; kosong = tag beralamat absolut dibuang |
 
 ## Uji peramban
@@ -72,17 +71,6 @@ mengikuti `index.html`.
 Hanya landing yang boleh diindeks (`<!--@head:index-->`); semua halaman lain memakai `<!--@head-->` dan bertanda
 `noindex`. `robots.txt` mengizinkan semuanya, sebab `noindex` hanya terbaca bila halamannya boleh diambil perayap.
 
-## Asisten obrolan (opsional)
-
-Skrip pihak ketiga berjalan di origin yang sama dengan token login (`localStorage`), jadi pemasangannya dibatasi:
-
-- **Opt-in lewat build**: tanpa `PDK_ASSISTANT_SRC` tidak ada skrip dan CSP tetap ketat di semua halaman.
-- **Vendor yang dikenal saja**: hanya host di tabel `ASSISTANT_VENDORS` pada `scripts/build-site.mjs` (beserta origin API-nya untuk `connect-src`), dan hanya alamat https tanpa query. Menambah vendor berarti memeriksa kebutuhan CSP-nya lebih dulu.
-- **Hanya di landing, hanya untuk pengunjung yang belum masuk** (`pages/home.js`). Halaman masuk, reset kata sandi, materi, dan admin tidak pernah memuatnya.
-- **Kelonggaran CSP hanya di landing**: `script-src`, `frame-src`, `connect-src` untuk vendor, dan `style-src 'unsafe-inline'` (skrip vendor membuat gaya inline). `npm run check` memastikan halaman lain tetap ketat.
-
-Skrip vendor mengirim alamat halaman dan pesan obrolan ke vendor, dan tidak diberi versi maupun SRI: isinya dapat berubah di sisi vendor.
-
 ## Konvensi
 
 - Komponen dipakai lewat kelas semantik (`.btn`, `.card`, `.chip`, `.input`, ...) yang didefinisikan di `assets/css/input.css`, bukan menyalin utilitas panjang.
@@ -99,6 +87,5 @@ Skrip vendor mengirim alamat halaman dan pesan obrolan ke vendor, dan tidak dibe
 - Aktifkan Pages dengan sumber "GitHub Actions".
 - Variabel repo `API_BASE_URL`: alamat API backend tanpa path. Selama kosong, deploy dilewati.
 - Base path dihitung dari nama repo; variabel repo `PAGES_BASE_PATH` menimpa (`root` = akar domain, untuk domain kustom).
-- Variabel repo `ASSISTANT_SRC` (opsional): alamat skrip embed asisten obrolan dari vendor yang dikenal build; kosong = tidak dipasang.
 - Variabel repo `SITE_URL` (opsional): alamat publik situs, mis. `https://contoh.id`; mengisi canonical, Open Graph, dan sitemap.
 - Origin situs harus terdaftar di `ALLOWED_ORIGINS` backend.

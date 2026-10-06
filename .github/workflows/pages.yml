@@ -59,15 +59,11 @@ jobs:
           # Variabel repo SITE_URL (opsional): alamat publik situs, mis. https://proposalbima.zafranos.work.
           # Mengisi canonical, Open Graph, sitemap.xml, dan baris Sitemap di robots.txt.
           PDK_SITE_URL: ${{ vars.SITE_URL }}
-          # Variabel repo ASSISTANT_SRC (opsional): alamat skrip embed asisten obrolan (vendor yang dikenal build-site.mjs).
-          # Kosong = asisten tidak dipasang dan CSP tetap ketat di semua halaman.
-          PDK_ASSISTANT_SRC: ${{ vars.ASSISTANT_SRC }}
         run: npm run build
       - name: Periksa aturan CSP, tanpa CDN, dan awalan situs
         env:
           PDK_BASE_PATH: ${{ steps.base.outputs.base }}
           PDK_SITE_URL: ${{ vars.SITE_URL }}
-          PDK_ASSISTANT_SRC: ${{ vars.ASSISTANT_SRC }}
         run: npm run check
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

@@ -1,6 +1,5 @@
 import "../common.js";
 import * as api from "../api.js";
-import { config } from "../config.js";
 import * as session from "../session.js";
 import { applyContent, prepare, readCache, writeCache } from "../landing/hydrate.js";
 import { formatDate, h, icon, mount } from "../ui.js";
@@ -15,12 +14,6 @@ const refreshLanding = api.get("/api/landing", { noFollow: true }).then((res) =>
   applyContent(document, res.content);
   writeCache(res.content);
 }).catch(() => { /* tanpa API: isi yang tampil tetap */ });
-
-// Asisten obrolan pihak ketiga (hanya bila dikonfigurasi saat build). Skrip pihak ketiga berjalan di origin yang sama
-// dengan token login di localStorage, jadi hanya dimuat untuk pengunjung yang BELUM masuk, dan hanya di landing.
-if (config.assistantSrc && !session.isLoggedIn()) {
-  document.body.append(h("script", { src: config.assistantSrc, defer: true }));
-}
 
 // Pengguna yang sudah masuk melihat jalan pintas ke materi di tempat tombol daftar. Tombol itu (dan teks
 // data-edit di dalamnya) terganti seluruhnya, jadi isi landing yang tiba belakangan tidak menimpanya.

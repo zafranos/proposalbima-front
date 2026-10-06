@@ -1,6 +1,10 @@
 import "../common.js";
 import * as api from "../api.js";
 import { setBusy, showFormError } from "../ui.js";
+import { initAsciiLogo } from "../ascii-logo.js";
+
+// Dipasang sebelum await tingkat modul apa pun, supaya animasi tidak menunggu jawaban API.
+initAsciiLogo();
 
 const form = document.getElementById("form");
 const errBox = document.getElementById("form-error");

@@ -187,6 +187,16 @@ html.dark { color-scheme: dark; }
     background-image: radial-gradient(color-mix(in oklab, var(--foreground) 16%, transparent) 1px, transparent 1.2px);
     background-size: 22px 22px;
   }
+  /* Panggung animasi ASCII (assets/js/ascii-logo.js): kanvas bujur sangkar yang mengisi lebar wadahnya.
+     Ukuran piksel kanvas diatur skripnya dari ukuran tampilannya, jadi di sini cukup kotaknya. */
+  .ascii-stage {
+    @apply block w-full;
+    aspect-ratio: 1;
+    touch-action: pan-y;
+  }
+  /* Varian untuk panel samping halaman auth: panelnya sempit dan jangkung, jadi ukurannya
+     dibatasi tinggi layar juga. Tanpa ini halaman masuk ikut memanjang di laptop berlayar pendek. */
+  .ascii-stage-fit { width: min(100%, 42vh); }
   .glow-inverse {
     background-image:
       radial-gradient(70% 60% at 0% 0%, color-mix(in oklab, var(--color-tinta-500) 50%, transparent), transparent 65%),

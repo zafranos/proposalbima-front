@@ -47,46 +47,18 @@
       <div class="container-page grid items-center gap-14 pb-24 pt-14 sm:pt-20 lg:grid-cols-12 lg:gap-10 lg:pb-32 lg:pt-24">
         <div class="animate-rise lg:col-span-6">
           <span class="chip chip-primary gap-2 py-1 pe-3 ps-2.5 text-[13px]"><!--@icon sparkles | size-3.5--><span data-edit="hero.chip">Pelatihan penyusunan proposal DPPM 2026</span></span>
-          <h1 class="mt-6 font-display text-5xl font-medium leading-[1.04] tracking-tight sm:text-6xl lg:text-7xl"><span data-edit="hero.title">Susun proposal DPPM sampai</span> <span class="marker-hl whitespace-nowrap" data-edit="hero.highlight">siap submit</span></h1>
+          <h1 class="mt-6 font-display text-5xl font-medium leading-[1.04] tracking-tight sm:text-6xl xl:text-7xl"><span data-edit="hero.title">Susun proposal DPPM sampai</span> <span class="marker-hl whitespace-nowrap" data-edit="hero.highlight">siap submit</span></h1>
           <p class="mt-6 max-w-xl text-lg leading-8 text-muted-foreground-1" data-edit="hero.lead">Sembilan modul berisi prompt siap salin untuk asisten AI pilihan Anda. Untuk skema Dasar dan Terapan, dari mengunci skema sampai proposal siap ditempel ke template.</p>
           <p id="cta" class="mt-9 flex flex-wrap items-center gap-3">
             <a href="/register/" class="btn btn-primary btn-lg"><span data-edit="hero.cta_primary">Mulai belajar</span><!--@icon arrow-right | size-5--></a>
             <a href="#alur" class="btn btn-outline btn-lg" data-edit="hero.cta_secondary">Lihat alurnya</a>
           </p>
-          <ul class="mt-10 space-y-2.5 text-sm text-muted-foreground-1" data-list="hero.bullets">
-            <li class="flex items-center gap-2.5"><!--@icon check-circle | size-5 text-primary-700 dark:text-primary-300--><span data-field="text">Progres tersimpan, lanjutkan dari perangkat mana pun</span></li>
-            <li class="flex items-center gap-2.5"><!--@icon check-circle | size-5 text-primary-700 dark:text-primary-300--><span data-field="text">Skema Dasar dan Terapan</span></li>
-            <li class="flex items-center gap-2.5"><!--@icon check-circle | size-5 text-primary-700 dark:text-primary-300--><span data-field="text">Dikerjakan dengan asisten AI pilihan Anda</span></li>
-          </ul>
         </div>
 
-        <!-- Panggung produk: tiruan dekoratif kartu prompt (bukan isi materi) dan alur ganti, salin, tempel -->
-        <div class="relative mx-auto w-full max-w-xl lg:col-span-6 lg:max-w-none" aria-hidden="true">
+        <!-- Panggung: logo ZafranOS sebagai animasi ASCII pada kanvas (assets/js/ascii-logo.js) -->
+        <div class="relative mx-auto w-full max-w-xl lg:col-span-6 lg:max-w-none">
           <div class="absolute -inset-6 -z-10 rounded-[2.5rem] bg-gradient-to-br from-primary-200/50 via-transparent to-marker/30 blur-2xl dark:from-primary-700/30 dark:to-marker/10"></div>
-          <div class="card overflow-hidden shadow-lift">
-            <div class="flex items-start justify-between gap-4 border-b border-layer-line px-5 py-4">
-              <div class="min-w-0">
-                <p class="eyebrow text-[11px]">Modul 1 · mengunci skema</p>
-                <p class="mt-1 font-display text-2xl font-medium leading-tight">Mengunci skema</p>
-              </div>
-              <div class="shrink-0 text-end"><p class="text-[11px] text-muted-foreground-1">Progres alur</p><p class="text-sm font-semibold">1 dari 9</p></div>
-            </div>
-            <div class="px-5 pt-4"><div class="h-1.5 rounded-full bg-muted"><div class="h-full w-[11%] rounded-full bg-primary"></div></div></div>
-            <div class="p-5">
-              <div class="overflow-hidden rounded-2xl border border-line-2 bg-layer">
-                <div class="flex items-center justify-between gap-3 border-b border-line-2 bg-primary-50 px-4 py-2.5 dark:bg-primary-950">
-                  <span class="flex items-center gap-2 text-sm font-semibold text-primary-900 dark:text-primary-100"><!--@icon sparkles | size-4 text-primary-700 dark:text-primary-300-->Prompt untuk disalin</span>
-                  <span class="btn btn-primary btn-sm pointer-events-none"><!--@icon copy | size-3.5-->Salin prompt</span>
-                </div>
-                <p class="p-4 font-mono text-[13px] leading-7">Saya <mark>[ISI: nama lengkap sesuai PDDIKTI]</mark>, dosen di <mark>[ISI: nama perguruan tinggi]</mark>. Profil SINTA saya: <mark>[ISI: tautan]</mark></p>
-              </div>
-            </div>
-          </div>
-          <ol class="mt-6 grid grid-cols-3 gap-3 text-center text-[13px] font-medium">
-            <li class="rounded-xl border border-line-2 bg-layer px-3 py-3"><span class="mb-1 block text-xs text-muted-foreground-1">1</span>Ganti yang disorot</li>
-            <li class="rounded-xl border border-line-2 bg-layer px-3 py-3"><span class="mb-1 block text-xs text-muted-foreground-1">2</span>Salin prompt</li>
-            <li class="rounded-xl border border-line-2 bg-layer px-3 py-3"><span class="mb-1 block text-xs text-muted-foreground-1">3</span>Tempel ke asisten AI</li>
-          </ol>
+          <canvas id="ascii-hero" class="ascii-stage" data-ascii-logo role="img" aria-label="Logo ZafranOS sebagai animasi ASCII"></canvas>
         </div>
       </div>
     </section>

@@ -852,7 +852,7 @@ test("admin: landing disunting, disimpan, diurutkan, konflik ditolak, riwayat di
   assert.equal(await page.locator("#admin-menu img.brand-mark").evaluate((i) => i.complete && i.naturalWidth > 0), true, "logo di panel admin (dibangun JS, awalan situs) termuat");
   assert.equal(await lf(page, "hero.title").inputValue(), "Susun proposal DPPM sampai", "formulir memuat teks bawaan dari landing");
   assert.match(await lf(page, "hero.lead").inputValue(), /^Sembilan modul/);
-  assert.equal(await page.locator('[role="group"][aria-label="Butir 1"]').count(), 1);
+  assert.equal(await page.locator('[role="group"][aria-label="Langkah 1"]').count(), 1, "daftar langkah alur dapat disunting sebagai grup");
   const save = page.getByRole("button", { name: "Simpan perubahan" });
   assert.equal(await save.isDisabled(), true, "tanpa perubahan tombol simpan nonaktif");
   assert.match(await page.getByText(/perubahan sudah tersimpan/i).textContent(), /Semua perubahan sudah tersimpan/);

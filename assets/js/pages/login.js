@@ -2,6 +2,10 @@ import "../common.js";
 import * as api from "../api.js";
 import * as auth from "../auth.js";
 import { setBusy, showFormError } from "../ui.js";
+import { initAsciiLogo } from "../ascii-logo.js";
+
+// Dipasang sebelum await tingkat modul apa pun, supaya animasi tidak menunggu jawaban API.
+initAsciiLogo();
 
 const notice = document.getElementById("notice");
 if (new URLSearchParams(location.search).get("sesi") === "berakhir") {

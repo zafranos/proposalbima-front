@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZafranOS ASCII</title>
+<style>
+  :root { --bg:#ffffff; --chip:#e9eaee; --chip-ink:#1d2330; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0e1118; --chip:#222838; --chip-ink:#e8ebf2; } }
+  html,body { margin:0; height:100%; background:var(--bg); }
+  body { display:grid; place-items:center; font-family:Inter,system-ui,sans-serif; }
+  #stage { position:relative; width:min(96vw,96vh); aspect-ratio:1; }
+  canvas { position:absolute; inset:0; width:100%; height:100%; }
+  .chip { position:absolute; padding:.55em 1.1em; background:var(--chip); color:var(--chip-ink);
+          font-size:clamp(12px,2.3vmin,22px); border-radius:4px; opacity:0; transform:translateY(8px);
+          transition:opacity .7s ease, transform .7s ease; white-space:nowrap; }
+  .chip.on { opacity:1; transform:none; animation:bob 5s ease-in-out infinite; }
+  @keyframes bob { 50% { transform:translateY(-6px); } }
+  @media (prefers-reduced-motion: reduce) { .chip.on { animation:none; } }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" aria-label="Logo ZafranOS dalam animasi ASCII" role="img"></canvas>
+  <div class="chip" style="left:1%;top:58%">Innovate</div>
+  <div class="chip" style="right:0;top:46%">Contribute</div>
+  <div class="chip" style="left:1%;top:24%">Think</div>
+</div>
+<script>
+const GRID = ["......................................................................................................................................................", "......................................................................................................................................................", "......................................................................................................................................................", "......................................................................................................................................................", "............................................................................................................................BCCDDDDCB.................", ".........................................................................................................................ACEFGGHHGGGGEB...............", ".....................................................................bbbcccccccbbb......................................DFGGHJJJIIHGGHGA..............", "............................................................bcdefgghhiiiiiiiiiiiiiiihggfecb...........................CFGGGIJHDBBBFHHHIC..............", ".......................................................bcefhhiiiiiiiiiiiiiiiiiiiiijjjjjjjjjihgecb...................BEGGGGGHH....BFHHIHA..............", "...................................................bdfghiiihhhhhhiiiiiiiiiiiiiiiiiiiijijjjjjjjjjihfdb..............CGGGGGGGGGFEFGHIIIHB...............", "................................................ceghhhhhhhhiiiiiiiijjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjheb.........BFGGGGGGGGHHHHHIIIHD.................", ".............................................cfhhhhhhhiiijjjjjjjjjjjjjjjjjjiiiihhhhhhhhhhiiijjjjjjjjjjjjgd.....ADGGGGGGGGGHHHHIIIGD...................", "..........................................beghhhhhiijjjjjjjjjjjjjihhgfeddcbbb.............abbcdefhijjjjjjjd...CFGGGGGGGGHHHHIIIGC.....................", "........................................cfhhhhiijjjjjjjjjjihgfdcba...AABCCDDDEEEFFFFFFFFEEEDDCB....bcehiifa.BEGGGGGGGHHHHHIIIFB.......................", "......................................cfhhiijjjjjjjjjjhgecb.....BCDEFFFFGGGGGGGGGGGGGHHHHGGFEDCB...........DGGGGGGGHHHHHIIIEB.........................", "....................................bfhiijjjjjjjjjigdb.....ACDFGGGGGGGGGGGGGGGGGGHHHGFECB................CFGGGGGHHHHHIIIHEA...........................", "...................................ehiijjjjjjjjigd....BF..ACCCBCCEGGGGGGGGGGGHHHHGECB..................BFGGGGGHHHHHIIIHD..............................", ".................................cgijjjjjjjjjhda.....BGGFA........DGGGGGGGHHHHFDB....................AEGGGGHHHHHHIIIGD................................", "................................dijjjjjjjjjgc....BEFFGGGHGHGDA...AFGGHHHHHHFDB......................CGHGGHHHHHHIIIGC..................................", "...............................fjjjjjjjjjgb.......ACGGHHHHEB....CGHHHHHHGDB.......................bFGGGGHHHHHIIIFB....................................", "..............................gjjjjjjjjhc....BDEFD.BHHGGHIC...CFHHHHHGEB..........................ijjiHHHIIIIIFB.CDC..................................", ".............................gjjjjjjjje...BDFGFDB..DEB..BDDADFHHHHHEC...........................bhiijjjjiIIIFB.BFGFFEB................................", "............................gjjjjjjjhb..BEGGFC...........BEHHIIHFC.............................eijijijjjjiFB...AEGFFFFC...............................", "...........................ejjjjjjjg...DGGFC..........BDGHIIHFC..............................eijiiijjjheb........EGFFFGD..............................", "..........................bjjjjjjjf..BFHGD.........BDFHIIHFC..............................beiiiiiijjhd............EGGGFGD.............................", "..........................hjjjjjjf..BGHFB.......ADFHIHGEC..............................bdgiiiiiijjid..............AFGGGGGC............................", ".........................cjjjjjjf..BHHD.......CFHHHFDB...................abccddeeefffghiiiiiijijjf.................CGGGGGFA...........................", ".........................fjjjjjg...GHB.....CFHHGECA.................bdeghhiiiiiiiiiiiiiiiiiijjjjd...................FGGGGGE...........................", ".........................hjjjji...EHA...BEGHGDBbcb................dgiiiiiiiiiiiiiiiiiiiiiiijjjjc....................DGGGGGGB..........................", ".........................hjjjjc..AF...CFHGDB.dgfb..............behiiiijjiiiiiiiiiiiiiiiiiijjijg.....................BGGGGGGE..........................", ".........................hjjjg...A..CGGEB.cfije..............cgiijjjjjhhiiiijjjjjjjjjjjjjjjjjjf......................GGGGGHG..........................", ".........................gjjjb....BFGDAAdhjjhb.............dhijjjjjjgb....abbccddeeffghijjjjjji......................FHHHHHHB.........................", ".........................djjf....EFC.BFhjjjf............behjjjjjjjjjgbb................cjjjjjjjf.....................FHHHHHHC.........................", "..........................ijc..BFD.CFHjjjjf...........bfijjjjjjjjjjjjjiiiihhhhgffedddcdgjjjjjjjjc....................GHHHHHHD.........................", "..........................ej..BDBCFHHjjjjh..........cgijjjjjjjjjjjjjjjjjjjihgeddejjjjjjjjjjjjjjjf...................BHHHHHHHD.........................", "...........................e.ABAEGHijjjjje........cgjjjjjjjjjjjjjjjjjigfdb......bhjjjjjjjjjjjjjjd........BA.........DHHHHHHHC.........................", "..............................BGGGijjjjjid......chjjjjjjjjjjjjjihgecb......cefhijjjjjjjjjjjjjjjf........BGF.........HHHHHHHHB.........................", ".............................BGGGHjjjjjjie.....cjjjjjjjjjjjigec......bceghijjjjjjjjjjjjjjjjjjid......CFFGGGGGFB....EIHHHHHIG..........................", ".............................EGGGjjjjjjjig.....bijjjjjjjjjjb....befhijjjjjjjjjjjjjjjjjjjjjjjhb........AGHHHID.....BIHHHIIHID..........................", ".............................FGGGjjjjjjjhid......fijjjjjjjjhffhiigedddeefgghhiijjjjjjjjjjjjf..........CGECEGD....AHIHIIIHIG...........................", ".............................DGGHjjjjjjjiihb......beijjjjjjjjjjjh...............bbdijjjjjic...........AB...AB....HIIIIIIIIC...........................", "..............................EGGjjjjjjjjhihb..CC....dhjjjjjjjjjjiihggffeedccbb...cijjjjf............BDD..BGD..AHJIIIIIIIE............................", "...............................FHjjjjjjjjiiiic..DEC....cfijjjjjjjjjjjjjjjjjjjjjiiijjjjic..........ACEFFA.CGFA.BHJIIIIIIIF.............................", "................................EHjjjjjjjjiiiif..BFFDB....cfhjjjjjjjjjjjjjjjjjjjjjjjje.........ACEFFGFA.DGFA.DIJIIIIIIIG..............................", ".................................Eijjjjjjjjiiiihd..CFGFDB....bdfhjjjjjjjjjjjjjjjjjjgb.......BCEFFFFGE..FHE..FJJIIIIIIIF...............................", "..................................Dijjjjjjjjjiiiihd..CFGGGFDCA...acdfghiijjjjjiigeb....ABDEFFGGFFGGC.CHGB.CHJIIIIIIIIE................................", "...................................bhjjijjjjjjiiiijifc.ADFHHHHGFEDCBBAA.BbbbbbBAABCDEEFGGGGGGGFGGEAAFHD.BGJJIIIIIIIHC.................................", ".....................................eijjjiiijjjjiijjjhfdbBCEGHHIIIHHHHGGGGGGGGGGGGGGGGGGGGGGGGGC.DFD..FIJIIIIIIIIFA..................................", ".......................................dhijjjjiiiijiijjjjihfecCDEEFGGHHHHHGGGGGGGGGGGGGGGGGGGGDA.CB.BFIJIIIIIIIIGC....................................", "........................................BDeghijjjjjjjjjjjjjjjjjjihhgfeCBCDDEFGGGGGGGGGGGGHHGDA....CGIJIIIIIIIIHD......................................", ".........................................BDFFEdefghhiiiiiiiihhggfeEEEEFGGHHHHHHHHHHGHHHHHFC....CEHJJIIIIIIIIGC........................................", "...........................................ADGIIHGFFFEEEEEEFFFFGGGHHHHHHHHHHHHHHHHHHHHFDA...CEHIIIIIIIIIIHEB..........................................", "..............................................BEHJJJJIIIIIIIIIIIIHHHHHHHHHHHHHHIHHGEC...BDFHIIIIIIIIIIHFC.............................................", ".................................................BDFGIIIIIIIIHHHHHHHHIIIIIIHHGFDCA..BDFGHIIIHIIIIIHGEB................................................", ".....................................................BCDEFGGHHHHHHHHGGFFEDCBBBBCDEGHHHHHHHHHHHGFDB....................................................", ".............................................................ABBBBBBBCCDDEEFGGHHHHHHGGGFFEDCB.........................................................", ".....................................................................ABBCCCCCCCCBBBBA.................................................................", "..............bfgggggggggggggggfc...................bdfgggfb..........................................BCDEEEEEDDB.........ACDDEEEEEDDBA...............", "..............hjjjjjjjjjjjjjjjjji..................dijjjjjjc.......................................BDFGGGGGGGGGGHGEC....AEGGGGGGGGHHHHGB..............", "..............bfgggggffhjjjiijjgc..................ijijgccb......................................AEGGGGGGFEEEFGHHHHHFB.AFGGGGECCCDEFGFB...............", "......................eijjjjjhd......ccdddcb.bba..cjjjjd.....b..ccb....bcdddcb........bcdddca...AFGGGGGDB.....ACGHHHHHBBHGGHGB........................", "...................bfijjjjjhd.....dgijjjjjjiiiiichjjjjjjjicgijiijji.dgijjjjjjjigb...fijjjjjjigc.DGGGGGB.........BGHHHIF.GHHHHHGGFEDCB.................", ".................bfijjjjjhd......gjjjigeefhjjjjjcehjjjjhgfhjjjjigfehjjjigeefijjjjd.gjjjieegjjjjcEGGGGE...........FIHHIG.AEGHIIIIIIIIIGD...............", "...............beijjjjjhd.......ejjjib.....fjjjjc.bjjjjc..hjjjh...fjjjib.....gjjjhbjjjjc...hjijeEGGGHGA.........BHIHHIF....BDEFGGHIIIIIF..............", "..............eijjjjjie.........fjjji......fjjjjc.cjjjjc..hjjje...hjjjh......gjjjhbjjjjc...hjjjeBGHHHHGC.......DHIIIIHB.CCA.......GIIIIIA.............", "............cijjjjjjjihiiihhhhhebjjjjieccehjjjjjc.cjjjjc..hjjjf...cjjjjheccehjjjjhbjjjjc...hjije.CGHHHHHGFEEFGHIIIIIGBBFIIHGFEDDDFIIIIJF..............", "............cjjjjjjjjjjjjjjjjjjh.bgijjjjjjjijjjjc.bjjjjc..hjjje....cgijjjjjjjijjjhajjjjc...gjjje...DGHIIIIIIIIIIIIGC..CGHIIIJJJJJJJJJHE...............", ".............acdddddddddddddddc....acdeeedb.cddc...cddc...bddd.......bcdeeedb.dddb.cddc....bddd......BDEFFGGGFFECA......BCEFFGGGGFEDB.................", "......................................................................................................................................................", "......................................................................................................................................................", "......................................................................................................................................................", "......................................................................................................................................................", "......................................................................................................................................................", "......................................................................................................................................................", "......................................................................................................................................................"];
+const COLS = 150, ROWS = 75;
+const RAMP = " .:-=+*#%@";
+const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const dark = () => matchMedia("(prefers-color-scheme: dark)").matches;
+
+// decode: lowercase = blue family, uppercase = orange family, '.' = empty
+const ink  = new Float32Array(COLS * ROWS);
+const warm = new Uint8Array(COLS * ROWS);
+GRID.forEach((row, y) => [...row].forEach((ch, x) => {
+  const i = y * COLS + x;
+  if (ch === ".") return;
+  warm[i] = ch < "a" ? 1 : 0;
+  ink[i]  = ((ch < "a" ? ch.charCodeAt(0) - 65 : ch.charCodeAt(0) - 97) + 1) / 10;
+}));
+const sample = (x, y) => {
+  x = Math.round(x); y = Math.round(y);
+  return (x < 0 || y < 0 || x >= COLS || y >= ROWS) ? -1 : y * COLS + x;
+};
+
+let W, H, cw, ch, dpr;
+function resize() {
+  const r = cv.getBoundingClientRect();
+  dpr = Math.min(devicePixelRatio || 1, 2, 1100 / Math.max(r.width, 1));   // cap ~1100px: ASCII needs no more
+  W = cv.width = Math.round(r.width * dpr); H = cv.height = Math.round(r.height * dpr);
+  cw = W / COLS; ch = H / ROWS;
+  ctx.font = `${Math.floor(ch * 1.02)}px "SF Mono",Menlo,Consolas,monospace`;
+  ctx.textBaseline = "top";
+}
+addEventListener("resize", resize); resize();
+
+const mouse = { x: -99, y: -99 };
+cv.addEventListener("pointermove", e => {
+  const r = cv.getBoundingClientRect();
+  mouse.x = (e.clientX - r.left) / r.width * COLS;
+  mouse.y = (e.clientY - r.top) / r.height * ROWS;
+});
+cv.addEventListener("pointerleave", () => { mouse.x = mouse.y = -99; });
+
+const chips = [...document.querySelectorAll(".chip")];
+const noise = (x, y) => { const s = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453; return s - Math.floor(s); };
+const BLUE = [[25,95,140],[10,110,170]], ORANGE = [[255,130,10],[255,92,10]];
+const cx = COLS / 2, cy = ROWS / 2, maxR = Math.hypot(cx, cy * 2);
+const R = new Float32Array(COLS * ROWS), A = new Float32Array(COLS * ROWS);
+for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+  const dx = x - cx, dy = (y - cy) * 2; R[y * COLS + x] = Math.hypot(dx, dy); A[y * COLS + x] = Math.atan2(dy, dx);
+}
+// colour cache: [dark?][warm][checker][glint level 0-5] -> css string
+const STYLE = {};
+function style(night, w, k, g) {
+  const key = (night ? 1 : 0) | w << 1 | k << 2 | g << 3;
+  if (STYLE[key]) return STYLE[key];
+  const pal = (w ? ORANGE : BLUE)[k], lift = night ? 0.35 : 0, m = g * 14;
+  return STYLE[key] = `rgb(${pal.map(c => Math.min(255, Math.round(c + m + lift * (255 - c)))).join(",")})`;
+}
+
+function frame(ms) {
+  const t = reduce ? 99 : ms / 1000;
+  ctx.clearRect(0, 0, W, H);
+  const reveal = Math.min(t / 3.2, 1) * (maxR + 6);           // radial intro
+  const sweep = ((t * 0.18) % 1.6) * (COLS + ROWS) - 20;      // diagonal highlight
+  const night = dark();
+  let cur = "";
+  chips.forEach((c, i) => c.classList.toggle("on", t > 2.2 + i * 0.5));
+
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const ci = y * COLS + x, r = R[ci];
+      if (r > reveal) continue;
+
+      // gentle twist + wave so the swirl feels alive
+      const twist = reduce ? 0 : 0.025 * Math.sin(t * 0.7) * (1 - Math.min(r / maxR, 1));
+      const a = A[ci] + twist;
+      let sx = cx + Math.cos(a) * r, sy = cy + Math.sin(a) * r / 2;
+      if (!reduce) { sx += 0.5 * Math.sin(y * 0.22 + t * 1.6); sy += 0.25 * Math.sin(x * 0.12 + t * 1.2); }
+
+      // pointer ripple
+      const md = Math.hypot(x - mouse.x, (y - mouse.y) * 2);
+      if (md < 14) { const k = (1 - md / 14) * 2.2; sx += (x - mouse.x) / (md + 1) * k; sy += (y - mouse.y) / (md + 1) * k; }
+
+      const i = sample(sx, sy);
+      if (i < 0 || ink[i] === 0) continue;
+
+      let v = ink[i] + 0.10 * Math.sin(t * 2.4 + x * 0.3 + y * 0.2);
+      const edge = reveal - r;                                  // flicker on the reveal front
+      if (edge < 5 && !reduce) v *= noise(x + Math.floor(t * 18), y) ;
+      const hl = Math.max(0, 1 - Math.abs(x + y - sweep) / 9);  // sweeping glint
+      v = Math.min(1, v + hl * 0.5);
+      const idx = Math.max(1, Math.min(9, Math.round(v * 9)));
+
+      const fs = style(night, warm[i], (x + y) & 1, Math.round(hl * 5));
+      if (fs !== cur) ctx.fillStyle = cur = fs;
+      ctx.fillText(RAMP[idx], x * cw, y * ch);
+    }
+  }
+  if (!reduce) requestAnimationFrame(frame);
+}
+reduce ? frame(0) : requestAnimationFrame(frame);
+</script>
+</body>
+</html>

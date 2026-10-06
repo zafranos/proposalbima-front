@@ -3,6 +3,10 @@ import * as api from "../api.js";
 import * as session from "../session.js";
 import { applyContent, prepare, readCache, writeCache } from "../landing/hydrate.js";
 import { formatDate, h, icon, mount } from "../ui.js";
+import { initAsciiLogo } from "../ascii-logo.js";
+
+// Dipasang sebelum await tingkat modul apa pun, supaya animasi tidak menunggu jawaban API.
+initAsciiLogo();
 
 // Teks landing dapat disunting admin. HTML sudah memuat teks bawaan (itu yang dibaca mesin pencari); di sini
 // isi terakhir yang dikenal dari peramban langsung diterapkan, lalu disegarkan dari server. Tanpa API,

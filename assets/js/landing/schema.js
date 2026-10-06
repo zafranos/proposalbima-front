@@ -22,7 +22,6 @@ export const SECTIONS = [
       { path: "hero.cta_secondary", label: "Tombol kedua", max: 30 },
     ],
     lists: [
-      { path: "hero.bullets", label: "Butir di bawah tombol", itemLabel: "Butir", max: 5, keys: [{ key: "text", label: "Teks", max: 90 }] },
     ],
   },
   {

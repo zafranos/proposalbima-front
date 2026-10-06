@@ -47,7 +47,7 @@ export const SECTIONS = [
       {
         path: "alur.items", label: "Langkah alur", itemLabel: "Langkah", max: 14,
         keys: [
-          { key: "label", label: "Penanda (mis. Fase 3)", max: 24 },
+          { key: "label", label: "Penanda (mis. Modul 3)", max: 24 },
           { key: "title", label: "Judul langkah", max: 140, rows: 2 },
           { key: "code", label: "Rujukan bagian proposal (opsional)", max: 30, optional: true },
         ],

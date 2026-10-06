@@ -1,4 +1,4 @@
-// Tab untuk modul yang punya bagian varian (skema Terapan): "Varian Terapan" dan "Fase (dasar)".
+// Tab untuk modul yang punya lebih dari satu bagian; judul tabnya berasal dari data bagian itu.
 // Pola ARIA tab: tombol role=tab dengan panah kiri/kanan, panel role=tabpanel.
 import { h } from "../ui.js";
 

@@ -3,12 +3,10 @@
 import { withBase } from "../api.js";
 import { copyText, h, icon, scrollRegion, toast } from "../ui.js";
 
-// Penanda isian yang disorot di dalam pagar kode (tanpa mengubah teks, jadi salinan tetap utuh).
-// Huruf kecil seperti [judul kerja] dan penanda bukan-isian seperti [S1] atau [K001] tidak disorot.
-const MARKER = new RegExp(
-  "\\[(?:ISI[^\\]\\n]*|DATA-DIBUTUHKAN[^\\]\\n]*|VERIFIKASI|USUL|HARGA-PERLU-DIISI|KONFIRMASI LPPM|PERIKSA KESESUAIAN|KOSONG|DATA-KURANG[^\\]\\n]*|PERLU KLARIFIKASI|TIDAK DIBACA|KUNCI TIDAK ADA DI DAFTAR KUNCI[^\\]\\n]*)\\]",
-  "g",
-);
+// Isian yang harus peserta ganti sebelum prompt ditempel, ditulis [ISI: ...] di dalam pagar kode.
+// Disorot tanpa mengubah teks, jadi salinan tetap utuh. Tanda lain di dalam prompt, mis. [sebutkan]
+// atau [BUTUH RUJUKAN], adalah bagian dari bentuk jawaban yang diminta dari AI, jadi tidak disorot.
+const MARKER = /\[ISI[^\]\n]*\]/g;
 
 const COPY_BTN = "btn btn-primary btn-sm";
 
@@ -71,11 +69,12 @@ function copyButton(getText, label = "Salin", accessibleName = "") {
   return btn;
 }
 
-// Kartu salin-tempel: pagar kode pertama di bawah heading "Kartu ..." (sebelum heading setingkat
-// atau lebih tinggi berikutnya) dibungkus dengan batang judul dan tombol Salin.
+// Kartu salin-tempel: pagar kode pertama di bawah heading "Prompt ..." (sebelum heading setingkat
+// atau lebih tinggi berikutnya) dibungkus dengan batang judul dan tombol Salin. Prompt perbaikan
+// di bawah heading lain tetap dapat disalin, lewat tombol kecil dari copyOtherPre.
 function cardify(root) {
   root.querySelectorAll("h2, h3").forEach((heading) => {
-    if (!/^Kartu\s/.test(heading.textContent.trim())) return;
+    if (!/^Prompt\b/.test(heading.textContent.trim())) return;
     const level = Number(heading.tagName[1]);
     for (let n = heading.nextElementSibling; n; n = n.nextElementSibling) {
       if (/^H[1-6]$/.test(n.tagName) && Number(n.tagName[1]) <= level) break;
@@ -92,11 +91,13 @@ function wrapPre(pre, isCard, title) {
   const text = () => pre.textContent.replace(/\n$/, "");
   const wrap = h("div", { class: isCard ? "code-card" : "code-block", data: { preWrap: "1" } });
   if (isCard) {
+    // highlightMarkers sudah jalan sebelum cardify, jadi <mark> menandai prompt yang masih perlu diisi.
+    const perluIsi = !!pre.querySelector("mark");
     wrap.append(h("div", { class: "code-card-head" },
       h("span", { class: "flex min-w-0 items-center gap-2 text-sm font-semibold text-primary-900 dark:text-primary-100" },
         icon("sparkles", "size-4 text-primary-700 dark:text-primary-300"), h("span", { class: "truncate", text: "Prompt untuk disalin" }),
-        h("span", { class: "hidden text-xs font-normal text-muted-foreground-1 sm:inline", text: "Isi bagian yang disorot" })),
-      copyButton(text, "Salin kartu", `Salin kartu ${title.replace(/^Kartu\s+/, "")}`)));
+        perluIsi ? h("span", { class: "hidden text-xs font-normal text-muted-foreground-1 sm:inline", text: "Ganti dulu bagian yang disorot" }) : null),
+      copyButton(text, "Salin prompt", "Salin prompt untuk ditempel ke AI Anda")));
     wrap.dataset.card = title;
   } else {
     const btn = copyButton(text, "Salin");

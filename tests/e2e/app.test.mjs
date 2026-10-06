@@ -146,16 +146,16 @@ test("daftar, menunggu persetujuan, pratinjau, modul terkunci", async () => {
   await page.getByRole("link", { name: "Buka materi pratinjau" }).click();
   await page.waitForURL("**/modul/?slug=beranda");
   await page.locator("#content h1").waitFor();
-  assert.equal(await progressText(page), "0 dari 10 selesai");
+  assert.equal(await progressText(page), "0 dari 9 selesai");
   await noLeakyText(page, "beranda pratinjau");
   assert.match(await page.locator("#akses-badge").textContent(), /Mode pratinjau/);
   const locked = page.locator('#nav [aria-disabled="true"]');
-  assert.ok((await locked.count()) >= 8, "modul penuh harus terkunci saat pratinjau");
-  assert.ok((await locked.filter({ hasText: "Fase 1" }).count()) >= 1);
-  assert.equal(await page.locator("#nav a", { hasText: "Fase 0" }).count(), 1, "Fase 0 terbuka saat pratinjau");
+  assert.ok((await locked.count()) >= 7, "modul penuh harus terkunci saat pratinjau");
+  assert.ok((await locked.filter({ hasText: "Modul 2" }).count()) >= 1);
+  assert.equal(await page.locator("#nav a", { hasText: "Modul 0" }).count(), 1, "Modul 0 terbuka saat pratinjau");
   await shot(page, "02-beranda-pratinjau");
 
-  await page.goto(WEB + "/modul/?slug=fase-1");
+  await page.goto(WEB + "/modul/?slug=modul-2");
   await page.locator("#content h1").waitFor();
   assert.equal(await page.locator("#content h1").textContent(), "Modul ini terkunci");
   await noLeakyText(page, "modul terkunci");
@@ -167,33 +167,30 @@ test("daftar, menunggu persetujuan, pratinjau, modul terkunci", async () => {
 test("persetujuan admin membuka akses penuh; kartu disalin utuh; progres tersimpan", async () => {
   await approve(userA.email, "dasar");
   const { context, page } = await authed(userA);
-  await page.goto(WEB + "/modul/?slug=fase-2");
+  await page.goto(WEB + "/modul/?slug=modul-2");
   await page.locator("[data-card]").first().waitFor();
   assert.equal(await page.locator("#akses-badge").textContent(), "Akses penuh");
-  await noLeakyText(page, "fase-2");
+  await noLeakyText(page, "modul-2");
 
   const card = page.locator("[data-card]").first();
-  const marks = await card.locator("mark").count();
-  assert.ok(marks > 0, "penanda isian [ISI...] harus disorot");
-  await card.getByRole("button", { name: "Salin kartu" }).click();
+  await card.getByRole("button", { name: "Salin prompt" }).click();
   const clip = await page.evaluate(() => navigator.clipboard.readText());
   const expected = await card.locator("pre").evaluate((el) => el.textContent.replace(/\n$/, ""));
   assert.equal(clip, expected, "isi papan klip harus sama dengan teks kartu");
-  assert.ok(clip.includes("[ISI"), "penanda isian tidak boleh hilang dari salinan");
   assert.ok(clip.length > 200);
   await shot(page, "03-kartu");
 
   const done = page.getByRole("button", { name: /Tandai selesai/ });
   await done.click();
-  await until(async () => (await progressText(page)) === "1 dari 10 selesai", "progres 1 dari 10");
+  await until(async () => (await progressText(page)) === "1 dari 9 selesai", "progres 1 dari 9");
   assert.equal(await page.locator("progress").evaluate((p) => p.value), 1);
   assert.equal(await page.getByRole("button", { name: /Selesai \(klik/ }).count(), 1, "keadaan selesai terbaca dari teks tombol");
 
   await page.reload();
   await page.locator("[data-card]").first().waitFor();
-  assert.equal(await progressText(page), "1 dari 10 selesai", "progres harus bertahan setelah muat ulang");
+  assert.equal(await progressText(page), "1 dari 9 selesai", "progres harus bertahan setelah muat ulang");
   await page.getByRole("button", { name: /Selesai \(klik/ }).click();
-  await until(async () => (await progressText(page)) === "0 dari 10 selesai", "progres kembali 0");
+  await until(async () => (await progressText(page)) === "0 dari 9 selesai", "progres kembali 0");
 
   await page.goto(WEB + "/modul/?slug=beranda");
   await page.locator("#content h1").waitFor();
@@ -202,9 +199,33 @@ test("persetujuan admin membuka akses penuh; kartu disalin utuh; progres tersimp
   await context.close();
 });
 
+test("isian peserta pada prompt disorot, diberi petunjuk, dan tetap utuh saat disalin", async () => {
+  const { context, page } = await authed(userA);
+  await page.goto(WEB + "/modul/?slug=modul-1");
+  const card = page.locator("[data-card]").first();
+  await card.waitFor();
+  assert.ok((await card.locator("mark").count()) >= 3, "baris isian peserta harus disorot");
+  assert.match(await card.locator("mark").first().textContent(), /^\[ISI:/);
+  assert.equal(await card.getByText("Ganti dulu bagian yang disorot").count(), 1, "kartu berisian memberi petunjuk");
+
+  await card.getByRole("button", { name: "Salin prompt" }).click();
+  const clip = await page.evaluate(() => navigator.clipboard.readText());
+  assert.ok(clip.includes("[ISI: nama lengkap sesuai PDDIKTI]"), "penanda isian tidak boleh hilang dari salinan");
+  assert.equal(await card.locator("pre").evaluate((el) => el.textContent.replace(/\n$/, "")), clip, "sorotan tidak boleh mengubah teks");
+
+  // Prompt modul lain tidak punya isian peserta: tanda seperti [sebutkan] adalah bentuk jawaban
+  // yang diminta dari AI, jadi tidak disorot dan petunjuk isian tidak muncul.
+  await page.goto(WEB + "/modul/?slug=modul-6");
+  await page.locator("[data-card]").first().waitFor();
+  assert.equal(await page.locator("[data-card] mark").count(), 0, "tanda milik AI tidak boleh disorot");
+  assert.equal(await page.getByText("Ganti dulu bagian yang disorot").count(), 0);
+  noIssues();
+  await context.close();
+});
+
 test("ponsel: sidebar menjadi laci yang bisa dibuka dan ditutup", async () => {
   const { context, page } = await authed(userA, { viewport: { width: 375, height: 800 } });
-  await page.goto(WEB + "/modul/?slug=fase-2");
+  await page.goto(WEB + "/modul/?slug=modul-2");
   await page.locator("#nav a").first().waitFor({ state: "attached" });
   const sidebar = page.locator("#sidebar");
   assert.equal(await sidebar.isVisible(), false, "sidebar tersembunyi di ponsel");
@@ -215,7 +236,7 @@ test("ponsel: sidebar menjadi laci yang bisa dibuka dan ditutup", async () => {
   assert.equal(await toggle.getAttribute("aria-expanded"), "false");
   await toggle.click();
   await until(onScreen, "laci benar-benar masuk layar");
-  assert.ok(await page.locator("#sidebar").getByRole("link", { name: /Fase 2/ }).isVisible());
+  assert.ok(await page.locator("#sidebar").getByRole("link", { name: /Modul 2/ }).isVisible());
   // Laci terbuka = modal sungguhan: aria-expanded benar, role dialog, halaman belakang inert, fokus di dalam.
   assert.equal(await toggle.getAttribute("aria-expanded"), "true");
   assert.equal(await sidebar.getAttribute("aria-modal"), "true");
@@ -231,7 +252,7 @@ test("ponsel: sidebar menjadi laci yang bisa dibuka dan ditutup", async () => {
     assert.ok(info.inside || info.tag === "BODY", `Tab tidak boleh mendarat di luar laci (jatuh di <${info.tag}> "${info.text}")`);
     seen.add(info.tag);
   }
-  assert.ok(seen.has("SUMMARY"), "grup Referensi/Lampiran (<summary>) harus terjangkau lewat Tab di laci");
+  assert.ok(seen.has("SUMMARY"), "grup Alur dan Referensi (<summary>) harus terjangkau lewat Tab di laci");
   await shot(page, "04-ponsel-sidebar");
   // Esc menutup dan mengembalikan fokus ke tombol pembuka.
   await page.keyboard.press("Escape");
@@ -252,7 +273,7 @@ test("ponsel: sidebar menjadi laci yang bisa dibuka dan ditutup", async () => {
   await context.close();
 });
 
-test("Terapan: daftar dengan kode langsung disetujui; tab varian dan dasar, callout rujukan", async () => {
+test("Terapan: daftar dengan kode langsung disetujui; materi satu bagian tanpa tab", async () => {
   const admin = await adminToken();
   const code = (await api("/admin/invite-codes", { method: "POST", token: admin, body: { skema: "terapan" } })).data.kode.code;
   const email = `terapan-${uid()}@example.test`;
@@ -268,36 +289,22 @@ test("Terapan: daftar dengan kode langsung disetujui; tab varian dan dasar, call
   assert.equal(mine[0].status, "approved");
   assert.equal(mine[0].used_invite_code, code);
 
-  await page.goto(WEB + "/modul/?slug=fase-3");
-  const tabs = page.getByRole("tab");
-  await tabs.first().waitFor();
-  await noLeakyText(page, "fase-3 terapan");
-  assert.equal(await tabs.count(), 2);
-  assert.match(await tabs.nth(0).textContent(), /Varian Terapan/);
-  assert.equal(await tabs.nth(0).getAttribute("aria-selected"), "true");
-  assert.match((await page.locator("#panel-varian h2").first().getAttribute("id")) || "", /^varian--/);
-  assert.equal(await page.locator("#panel-dasar").isHidden(), true);
-  await shot(page, "05-terapan-tab");
-
-  await tabs.nth(1).click();
-  await until(() => page.locator("#panel-dasar").isVisible(), "panel dasar tampil");
-  assert.equal(await page.locator("#panel-varian").isHidden(), true);
-  assert.match(page.url(), /bagian=dasar/);
-  await tabs.nth(1).press("ArrowLeft");
-  await until(() => page.locator("#panel-varian").isVisible(), "panah kiri kembali ke varian");
-
-  await page.goto(WEB + "/modul/?slug=fase-2");
-  const note = page.getByRole("note");
-  await note.waitFor();
-  assert.match(await note.textContent(), /Kartu 3T\.1/);
-  assert.match(await note.getByRole("link").getAttribute("href"), /slug=fase-3&bagian=varian/);
+  await page.goto(WEB + "/modul/?slug=modul-2");
+  await page.locator("[data-card]").first().waitFor();
+  await noLeakyText(page, "modul-2 terapan");
+  // Satu naskah modul dipakai kedua skema: tidak ada tab varian, dan ketentuan khusus skema
+  // ada di dalam modul yang sama.
+  assert.equal(await page.getByRole("tab").count(), 0, "materi tidak bercabang per skema");
+  assert.equal(await page.locator("#panel-dasar").count(), 1, "hanya satu panel isi");
+  assert.equal(await page.locator("#content h2", { hasText: "Yang perlu diperhatikan menurut skema" }).count(), 1);
+  await shot(page, "05-terapan-modul");
   noIssues();
   await context.close();
 });
 
 test("semua tautan internal membawa awalan situs dan navigasi tetap di dalamnya", async () => {
   const { context, page } = await authed(userA);
-  await page.goto(WEB + "/modul/?slug=lampiran-l2");
+  await page.goto(WEB + "/modul/?slug=aturan-c");
   await page.locator("#content h1").waitFor();
   await page.locator("#nav a").first().waitFor();
   const bad = await page.evaluate((base) => [...document.querySelectorAll("a[href]")]
@@ -305,47 +312,35 @@ test("semua tautan internal membawa awalan situs dan navigasi tetap di dalamnya"
     .filter((h) => h.startsWith("/") && !h.startsWith("//") && !(base === "" || h === base || h.startsWith(base + "/") || h.startsWith(base + "?")))
     , BASE);
   assert.deepEqual(bad, [], `tautan tanpa awalan situs ${BASE}`);
-  // Tautan di isi materi (dibuat backend relatif terhadap akar aplikasi) juga berawalan situs.
-  const inContent = await page.locator('article a[href*="/modul/?slug="], article a[href*="/berkas/"]').evaluateAll((as) => as.map((a) => a.getAttribute("href")));
-  assert.ok(inContent.length > 0, "isi l2 memuat tautan ke modul atau berkas");
-  assert.ok(inContent.every((h) => h.startsWith(BASE + "/")), `tautan isi tanpa awalan: ${inContent.find((h) => !h.startsWith(BASE + "/"))}`);
-  await page.locator("#nav a", { hasText: "Fase 1" }).click();
-  await page.waitForURL(/slug=fase-1/);
+  await page.locator("#nav a", { hasText: "Modul 1" }).click();
+  await page.waitForURL(/slug=modul-1/);
   assert.ok(new URL(page.url()).pathname.startsWith(BASE + "/modul/"), "tetap di bawah awalan situs: " + page.url());
   noIssues();
   await context.close();
 });
 
-test("salin instruksi proyek sama dengan teks di bawah garis", async () => {
-  const { context, page } = await authed(userA);
-  await page.goto(WEB + "/modul/?slug=instruksi-proyek");
-  await page.getByRole("button", { name: "Salin instruksi" }).click();
-  const clip = await page.evaluate(() => navigator.clipboard.readText());
-  const m = await api("/modul/instruksi-proyek", { token: userA.token });
-  const want = m.data.bagian[0].salin_teks;
-  assert.equal(clip, want);
-  assert.ok(!clip.includes("Teks di bawah garis ditempel"), "kalimat pengantar tidak boleh ikut tersalin");
-  assert.ok(clip.includes("**"), "markdown mentah (penebalan) dipertahankan");
-  noIssues();
-  await context.close();
-});
-
-test("unduhan lewat tombol dan lewat tautan di isi sama dengan sumber", async () => {
+test("unduhan muncul di modul pemiliknya dan isinya sama dengan sumber", async () => {
   const sha = (b) => createHash("sha256").update(b).digest("hex");
-  const src = sha(readFileSync(resolve(SRC_MATERI, "lampiran/alat-cek-proposal.py")));
+  const sumber = (rel) => sha(readFileSync(resolve(SRC_MATERI, "01-pustaka-aturan", rel)));
+  const unduh = (page) => page.locator('section[aria-labelledby="unduhan-judul"] button');
   const { context, page } = await authed(userA);
-  await page.goto(WEB + "/modul/?slug=lampiran-l2");
-  await page.getByRole("button", { name: /alat-cek-proposal\.py/ }).waitFor();
 
-  const [d1] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /alat-cek-proposal\.py/ }).click()]);
-  assert.equal(d1.suggestedFilename(), "alat-cek-proposal.py");
-  assert.equal(sha(readFileSync(await d1.path())), src, "isi unduhan harus sama dengan sumber");
+  await page.goto(WEB + "/modul/?slug=modul-6");
+  const rab = page.getByRole("button", { name: /template-rab-penelitian\.xlsx/ });
+  await rab.waitFor();
+  assert.equal(await unduh(page).count(), 1, "Modul 6 hanya menyediakan template RAB");
+  const [d1] = await Promise.all([page.waitForEvent("download"), rab.click()]);
+  assert.equal(d1.suggestedFilename(), "template-rab-penelitian.xlsx");
+  assert.equal(sha(readFileSync(await d1.path())), sumber("template-rab-penelitian.xlsx"), "isi unduhan harus sama dengan sumber");
 
-  const link = page.locator('article a[href$="/berkas/alat-cek-py"]').first();
-  await link.waitFor();
-  const [d2] = await Promise.all([page.waitForEvent("download"), link.click()]);
-  assert.equal(d2.suggestedFilename(), "alat-cek-proposal.py");
-  assert.equal(sha(readFileSync(await d2.path())), src);
+  await page.goto(WEB + "/modul/?slug=modul-8");
+  const surat = page.getByRole("button", { name: /template-surat-pernyataan-kesanggupan-dan-pakta-integritas\.docx/ });
+  await surat.waitFor();
+  assert.equal(await unduh(page).count(), 2, "Modul 8 menyediakan isian substansi dan surat pernyataan");
+  const [d2] = await Promise.all([page.waitForEvent("download"), surat.click()]);
+  assert.equal(d2.suggestedFilename(), "template-surat-pernyataan-kesanggupan-dan-pakta-integritas.docx");
+  assert.equal(sha(readFileSync(await d2.path())), sumber("Template Surat Pernyataan Kesanggupan dan Pakta Integritas Penelitian 2026__78636547.docx"));
+  await shot(page, "05-unduhan");
   noIssues();
   await context.close();
 });
@@ -863,8 +858,8 @@ test("admin: landing disunting, disimpan, diurutkan, konflik ditolak, riwayat di
   await adminReady(page);
   assert.equal((await page.locator('#admin-menu a[aria-current="page"]').textContent()).trim(), "Landing");
   assert.equal(await page.locator("#admin-menu img.brand-mark").evaluate((i) => i.complete && i.naturalWidth > 0), true, "logo di panel admin (dibangun JS, awalan situs) termuat");
-  assert.equal(await lf(page, "hero.title").inputValue(), "Susun proposal DPPM,", "formulir memuat teks bawaan dari landing");
-  assert.match(await lf(page, "hero.lead").inputValue(), /^Panduan mandiri/);
+  assert.equal(await lf(page, "hero.title").inputValue(), "Susun proposal DPPM sampai", "formulir memuat teks bawaan dari landing");
+  assert.match(await lf(page, "hero.lead").inputValue(), /^Sembilan modul/);
   assert.equal(await page.locator('[role="group"][aria-label="Butir 1"]').count(), 1);
   const save = page.getByRole("button", { name: "Simpan perubahan" });
   assert.equal(await save.isDisabled(), true, "tanpa perubahan tombol simpan nonaktif");
@@ -909,7 +904,7 @@ test("admin: landing disunting, disimpan, diurutkan, konflik ditolak, riwayat di
   const pub1 = await newPage();
   await pub1.page.goto(WEB + "/");
   await until(async () => /Judul uji e2e/.test(await landingH1(pub1.page).textContent()), "judul baru tampil");
-  assert.match((await landingH1(pub1.page).textContent()).replace(/\s+/g, " "), /^Judul uji e2e fase demi fase$/);
+  assert.match((await landingH1(pub1.page).textContent()).replace(/\s+/g, " "), /^Judul uji e2e siap submit$/);
   const faqs = await pub1.page.locator("#faq summary").allTextContents();
   assert.equal(faqs.length, 7);
   assert.equal(faqs[5].trim(), "Pertanyaan uji e2e?", "butir yang dinaikkan menempati urutan keenam");
@@ -955,11 +950,11 @@ test("admin: landing disunting, disimpan, diurutkan, konflik ditolak, riwayat di
   await page.getByRole("button", { name: "Kembalikan semua" }).click();
   await page.locator("dialog[open]").getByRole("button", { name: "Kembalikan", exact: true }).click();
   await until(async () => (await publicLanding()).content === null, "kembali ke bawaan");
-  await until(async () => (await lf(page, "hero.title").inputValue()) === "Susun proposal DPPM,", "formulir kembali ke bawaan");
+  await until(async () => (await lf(page, "hero.title").inputValue()) === "Susun proposal DPPM sampai", "formulir kembali ke bawaan");
   assert.equal(await page.getByRole("button", { name: "Kembalikan semua" }).isDisabled(), true);
   const pub2 = await newPage();
   await pub2.page.goto(WEB + "/");
-  await until(async () => /^Susun proposal DPPM, fase demi fase$/.test((await landingH1(pub2.page).textContent()).replace(/\s+/g, " ")), "landing kembali ke bawaan");
+  await until(async () => /^Susun proposal DPPM sampai siap submit$/.test((await landingH1(pub2.page).textContent()).replace(/\s+/g, " ")), "landing kembali ke bawaan");
   assert.equal(await pub2.page.locator("#faq summary").count(), 6);
   await pub2.context.close();
 
@@ -1170,7 +1165,7 @@ for (const scheme of ["light", "dark"]) {
   test(`aksesibilitas (axe) tanpa pelanggaran: tema ${scheme}`, async () => {
     const pages = [
       ["/", false], ["/login/", false], ["/register/", false], ["/forgot-password/", false],
-      ["/modul/?slug=beranda", true], ["/modul/?slug=fase-2", true], ["/modul/?slug=lampiran-l3", true], ["/select-skema/", true], ["/profile/", true],
+      ["/modul/?slug=beranda", true], ["/modul/?slug=modul-2", true], ["/modul/?slug=aturan-c", true], ["/select-skema/", true], ["/profile/", true],
     ];
     const problems = [];
     for (const [path, auth] of pages) {
@@ -1181,7 +1176,7 @@ for (const scheme of ["light", "dark"]) {
       if (path === "/register/") await page.getByRole("radio").first().waitFor();
       if (path === "/") await page.locator("#skema-cards article").first().waitFor();
       assert.equal(await page.evaluate(() => document.documentElement.classList.contains("dark")), scheme === "dark", "tema harus mengikuti preferensi sistem");
-      if (path === "/modul/?slug=fase-2") await shot(page, `07-fase2-${scheme}`);
+      if (path === "/modul/?slug=modul-2") await shot(page, `07-modul2-${scheme}`);
       if (path === "/login/") await shot(page, `08-login-${scheme}`);
       const res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
       for (const v of res.violations) {
